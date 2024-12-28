@@ -291,4 +291,37 @@ public let ProgramTemplates = [
         // Generate some more random code to (hopefully) use the parsed JSON in some interesting way.
         b.build(n: 25)
     },
+
+    ProgramTemplate("WasmFuzzer") { b in
+        b.buildPrefix()
+
+        // WASMモジュールを作成
+        let wasmModule = b.loadBuiltin("WebAssembly")
+        let moduleBytes = b.loadInt(Int64.random(in: 0...1000000))
+        let module = b.construct(wasmModule, withArgs: [moduleBytes])
+
+        // モジュールをインスタンス化
+        let instance = b.instantiateWasmModule(module)
+
+        // メモリにアクセス
+        let memory = b.getWasmMemory(instance)
+        
+        // ランダムなデータを書き込む
+        for _ in 0..<5 {
+            let offset = Int64.random(in: 0..<1024)
+            let data = (0..<Int.random(in: 1...32)).map { _ in UInt8.random(in: 0...255) }
+            b.writeWasmMemory(memory, offset: offset, values: data)
+        }
+
+        // エクスポートされた関数を呼び出す
+        let exportNames = ["test_func1", "test_func2", "test_func3"]
+        for name in exportNames {
+            let func_ = b.getWasmExport(instance, name)
+            b.callFunction(func_, withArgs: b.randomArguments(forCalling: func_))
+        }
+
+        // グローバル変数を操作
+        let global = b.getWasmGlobal(instance, name: "test_global")
+        b.binary(global, b.loadInt(42), with: .Add)
+    },
 ]

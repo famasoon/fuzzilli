@@ -196,4 +196,9 @@ public let codeGeneratorWeights = [
     "ApiMethodCallGenerator":                   15,
     "ApiFunctionCallGenerator":                 15,
     "VoidGenerator":                            1,
+
+    // WASMジェネレータの重み
+    "WasmInstantiateGenerator":     15,
+    "WasmMemoryGenerator":          10, 
+    "WasmGlobalGenerator":          10,
 ]
