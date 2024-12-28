@@ -113,6 +113,18 @@ fileprivate let WasmArrayGenerator = CodeGenerator("WasmArrayGenerator") { b in
     b.eval("%WasmArray()", hasOutput: true);
 }
 
+fileprivate let WasmMemoryGenerator = CodeGenerator("WasmMemoryGenerator") { b in
+    b.eval("%WasmMemory()", hasOutput: true);
+}
+
+fileprivate let WasmTableGenerator = CodeGenerator("WasmTableGenerator") { b in 
+    b.eval("%WasmTable()", hasOutput: true);
+}
+
+fileprivate let WasmGlobalGenerator = CodeGenerator("WasmGlobalGenerator") { b in
+    b.eval("%WasmGlobal()", hasOutput: true); 
+}
+
 fileprivate let MapTransitionFuzzer = ProgramTemplate("MapTransitionFuzzer") { b in
     // This template is meant to stress the v8 Map transition mechanisms.
     // Basically, it generates a bunch of CreateObject, GetProperty, SetProperty, FunctionDefinition,
@@ -620,6 +632,9 @@ let v8Profile = Profile(
 
         (WasmStructGenerator,                     15),
         (WasmArrayGenerator,                      15),
+        (WasmMemoryGenerator,                     10),
+        (WasmTableGenerator,                      10),
+        (WasmGlobalGenerator,                     10),
     ],
 
     additionalProgramTemplates: WeightedList<ProgramTemplate>([
@@ -633,9 +648,16 @@ let v8Profile = Profile(
     disabledMutators: [],
 
     additionalBuiltins: [
-        "gc"                                            : .function([] => (.undefined | .jsPromise)),
-        "d8"                                            : .object(withProperties: ["test"]),
-        "Worker"                                        : .constructor([.anything, .object()] => .object(withMethods: ["postMessage","getMessage"])),
+        "gc"            : .function([] => (.undefined | .jsPromise)),
+        "d8"            : .object(),
+        "Worker"        : .constructor([.anything, .object()] => .object(withMethods: ["postMessage","getMessage"])),
+        
+        "WebAssembly"   : .object(withMethods: ["Memory", "Table", "Global", "Instance", "Module"]),
+        "WebAssembly.Memory"    : .constructor([.object(withProperties: ["initial", "maximum"])] => .object()),
+        "WebAssembly.Table"     : .constructor([.object(withProperties: ["element", "initial", "maximum"])] => .object()),
+        "WebAssembly.Global"    : .constructor([.object(withProperties: ["value", "mutable"])] => .object()),
+        "WebAssembly.Instance"  : .constructor([.object()] => .object()),
+        "WebAssembly.Module"    : .constructor([.object()] => .object()),
     ],
 
     additionalObjectGroups: [],
