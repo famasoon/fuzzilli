@@ -1288,6 +1288,9 @@ public class JavaScriptLifter: Lifter {
             case .print:
                 let VALUE = input(0)
                 w.emit("fuzzilli('FUZZILLI_PRINT', \(VALUE));")
+            case .instantiateWasm:
+                let expr = CallExpression.new() + "WebAssembly.instantiate" + input(0)
+                w.assign(expr, to: instr.output)
             }
 
             // Handling of guarded operations, part 2: emit the guarded operation and surround it with a try-catch.

@@ -757,6 +757,9 @@ public class FuzzILLifter: Lifter {
 
         case .print:
             w.emit("Print \(input(0))")
+
+        case .instantiateWasm:
+            w.emit("\(output()) <- InstantiateWasm")
         }
     }
 
