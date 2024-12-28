@@ -2726,4 +2726,33 @@ public class ProgramBuilder {
             break
         }
     }
+
+    // WASMモジュールをインスタンス化するメソッド
+    @discardableResult 
+    public func instantiateWasmModule(_ module: Variable, withImports imports: [Variable] = []) -> Variable {
+        return emit(InstantiateWasm(numImports: imports.count), withInputs: [module] + imports).output
+    }
+
+    // WASMインスタンスから関数をエクスポートするメソッド
+    @discardableResult
+    public func getWasmExport(_ instance: Variable, _ exportName: String) -> Variable {
+        return emit(GetWasmExport(exportName: exportName), withInputs: [instance]).output
+    }
+
+    // WASMメモリーにアクセスするメソッド
+    @discardableResult 
+    public func getWasmMemory(_ instance: Variable, index: Int = 0) -> Variable {
+        return emit(GetWasmMemory(memoryIndex: index), withInputs: [instance]).output
+    }
+
+    // WASMメモリーを操作するメソッド
+    public func writeWasmMemory(_ memory: Variable, offset: Int64, values: [UInt8]) {
+        emit(WriteWasmMemory(offset: offset, bytes: values), withInputs: [memory])
+    }
+
+    // WASMグローバル変数を取得するメソッド
+    @discardableResult
+    public func getWasmGlobal(_ instance: Variable, name: String) -> Variable {
+        return emit(GetWasmGlobal(globalName: name), withInputs: [instance]).output
+    }
 }
