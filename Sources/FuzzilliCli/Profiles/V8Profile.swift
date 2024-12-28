@@ -114,11 +114,22 @@ fileprivate let WasmArrayGenerator = CodeGenerator("WasmArrayGenerator") { b in
 }
 
 fileprivate let WasmMemoryGenerator = CodeGenerator("WasmMemoryGenerator") { b in
-    b.eval("%WasmMemory()", hasOutput: true);
+    let wasmMemory = b.loadBuiltin("WebAssembly.Memory")
+    let memoryDesc = b.createObject(with: [
+        "initial": b.loadInt(1),
+        "maximum": b.loadInt(10)
+    ])
+    b.construct(wasmMemory, withArgs: [memoryDesc])
 }
 
-fileprivate let WasmTableGenerator = CodeGenerator("WasmTableGenerator") { b in 
-    b.eval("%WasmTable()", hasOutput: true);
+fileprivate let WasmTableGenerator = CodeGenerator("WasmTableGenerator") { b in
+    let wasmTable = b.loadBuiltin("WebAssembly.Table")
+    let tableDesc = b.createObject(with: [
+        "element": b.loadString("anyfunc"),
+        "initial": b.loadInt(1),
+        "maximum": b.loadInt(10)
+    ])
+    b.construct(wasmTable, withArgs: [tableDesc])
 }
 
 fileprivate let WasmGlobalGenerator = CodeGenerator("WasmGlobalGenerator") { b in
@@ -431,6 +442,22 @@ fileprivate let RegExpFuzzer = ProgramTemplate("RegExpFuzzer") { b in
     b.build(n: 15)
 }
 
+fileprivate let WasmInstantiateGenerator = CodeGenerator("WasmInstantiateGenerator") { b in
+    let wasmModule = b.loadBuiltin("WebAssembly.Module")
+    let wasmInstance = b.loadBuiltin("WebAssembly.Instance")
+    
+    // 最小限のWASMモジュールのバイナリデータを作成
+    let arrayConstructor = b.loadBuiltin("Uint8Array")
+    let wasmBytes = b.createArray(with: [
+        b.loadInt(0x00), b.loadInt(0x61), b.loadInt(0x73), b.loadInt(0x6d),  // magic
+        b.loadInt(0x01), b.loadInt(0x00), b.loadInt(0x00), b.loadInt(0x00),  // version
+    ])
+    let wasmBinary = b.construct(arrayConstructor, withArgs: [wasmBytes])
+    
+    let module = b.construct(wasmModule, withArgs: [wasmBinary])
+    b.construct(wasmInstance, withArgs: [module])
+}
+
 let v8Profile = Profile(
     processArgs: { randomize in
         var args = [
@@ -626,15 +653,16 @@ let v8Profile = Profile(
         (ForceTurboFanCompilationGenerator,        5),
         (ForceMaglevCompilationGenerator,          5),
         (TurbofanVerifyTypeGenerator,             10),
-
         (WorkerGenerator,                         10),
         (GcGenerator,                             10),
-
-        (WasmStructGenerator,                     15),
-        (WasmArrayGenerator,                      15),
+        
+        // WebAssembly関連のジェネレータ
+        (WasmStructGenerator,                     10),
+        (WasmArrayGenerator,                      10),
         (WasmMemoryGenerator,                     10),
         (WasmTableGenerator,                      10),
         (WasmGlobalGenerator,                     10),
+        (WasmInstantiateGenerator,                15),
     ],
 
     additionalProgramTemplates: WeightedList<ProgramTemplate>([
@@ -652,12 +680,12 @@ let v8Profile = Profile(
         "d8"            : .object(),
         "Worker"        : .constructor([.anything, .object()] => .object(withMethods: ["postMessage","getMessage"])),
         
-        "WebAssembly"   : .object(withMethods: ["Memory", "Table", "Global", "Instance", "Module"]),
-        "WebAssembly.Memory"    : .constructor([.object(withProperties: ["initial", "maximum"])] => .object()),
-        "WebAssembly.Table"     : .constructor([.object(withProperties: ["element", "initial", "maximum"])] => .object()),
-        "WebAssembly.Global"    : .constructor([.object(withProperties: ["value", "mutable"])] => .object()),
+        "WebAssembly"   : .object(withMethods: ["compile", "validate", "instantiate"]),
+        "WebAssembly.Module"    : .constructor([.object(ofGroup: "TypedArray")] => .object()),
         "WebAssembly.Instance"  : .constructor([.object()] => .object()),
-        "WebAssembly.Module"    : .constructor([.object()] => .object()),
+        "WebAssembly.Memory"    : .constructor([.object()] => .object()),
+        "WebAssembly.Table"     : .constructor([.object()] => .object()),
+        "Uint8Array"    : .constructor([.object()] => .object(ofGroup: "TypedArray")),
     ],
 
     additionalObjectGroups: [],
