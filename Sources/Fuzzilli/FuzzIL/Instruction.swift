@@ -840,8 +840,6 @@ extension Instruction: ProtobufConvertible {
                 $0.endBlockStatement = Fuzzilli_Protobuf_EndBlockStatement()
             case .loadNewTarget:
                 $0.loadNewTarget = Fuzzilli_Protobuf_LoadNewTarget()
-            case .nop:
-                $0.nop = Fuzzilli_Protobuf_Nop()
             case .print:
                 fatalError("unreachable")
             case .instantiateWasm(let p):
@@ -888,6 +886,8 @@ extension Instruction: ProtobufConvertible {
                 throw FuzzilliError.instructionDecodingError("invalid operation index or no decoding context available")
             }
             op = cachedOp
+        case .nop(_):
+            op = Nop()
         case .loadInteger(let p):
             op = LoadInteger(value: p.value)
         case .loadBigInt(let p):
@@ -1268,8 +1268,6 @@ extension Instruction: ProtobufConvertible {
             op = EndBlockStatement()
         case .loadNewTarget:
             op = LoadNewTarget()
-        case .nop:
-            op = Nop()
         case .print:
             fatalError("unreachable")
         case .instantiateWasm(let p):
