@@ -324,4 +324,116 @@ public let ProgramTemplates = [
         let global = b.getWasmGlobal(instance, name: "test_global")
         b.binary(global, b.loadInt(42), with: .Add)
     },
+
+    ProgramTemplate("ComplexWasmFuzzer") { b in 
+        b.buildPrefix()
+
+        // WASMモジュールを作成
+        let wasmModule = b.loadBuiltin("WebAssembly")
+        let moduleBytes = b.loadInt(Int64.random(in: 0...1000000))
+        let module = b.construct(wasmModule, withArgs: [moduleBytes])
+
+        // インポートオブジェクトを作成
+        let importObj = b.buildObjectLiteral { obj in
+            // env名前空間を作成
+            let env = b.buildObjectLiteral { envObj in
+                // コールバック関数を追加
+                envObj.addMethod("callback", with: .parameters(n: 2)) { args in
+                    b.buildRecursive(n: 5)
+                    b.doReturn(args[0])
+                }
+                
+                // メモリを追加
+                let memory = b.construct(b.getProperty("Memory", of: wasmModule), 
+                                      withArgs: [b.loadInt(1)])
+                envObj.addProperty("memory", as: memory)
+                
+                // テーブルを追加
+                let table = b.construct(b.getProperty("Table", of: wasmModule),
+                                     withArgs: [b.loadInt(10), b.loadString("anyfunc")])
+                envObj.addProperty("table", as: table)
+            }
+            obj.addProperty("env", as: env)
+        }
+
+        // モジュールをインスタンス化
+        let instance = b.instantiateWasmModule(module, withImports: [importObj])
+
+        // メモリ操作のテスト
+        let memory = b.getWasmMemory(instance)
+        
+        // 複数のメモリ領域に対して操作を実行
+        let regions = [(0, 128), (256, 384), (512, 640), (768, 896)]
+        for (start, end) in regions {
+            // ランダムなデータを書き込む
+            let offset = Int64.random(in: Int64(start)...Int64(end))
+            let data = (0..<Int.random(in: 16...64)).map { _ in UInt8.random(in: 0...255) }
+            b.writeWasmMemory(memory, offset: offset, values: data)
+            
+            // メモリ操作の間に関数呼び出しを挟む
+            if probability(0.5) {
+                let func_ = b.getWasmExport(instance, "test_func")
+                b.callFunction(func_, withArgs: [b.loadInt(offset)])
+            }
+        }
+
+        // 複数のグローバル変数を操作
+        let globalNames = ["g1", "g2", "g3", "accumulator"]
+        for name in globalNames {
+            let global = b.getWasmGlobal(instance, name: name)
+            
+            // グローバル変数に対して様々な演算を実行
+            withEqualProbability({
+                b.binary(global, b.loadInt(42), with: .Add)
+            }, {
+                b.binary(global, b.loadInt(2), with: .Mul)
+            }, {
+                b.binary(global, b.loadFloat(3.14), with: .Div)
+            })
+        }
+
+        // エクスポートされた関数を様々なパターンで呼び出す
+        let exportNames = ["add", "sub", "mul", "div", "mod"]
+        for name in exportNames {
+            let func_ = b.getWasmExport(instance, name)
+            
+            // 関数呼び出しのバリエーション
+            withEqualProbability({
+                // 通常の呼び出し
+                b.callFunction(func_, withArgs: [b.loadInt(42), b.loadInt(7)])
+            }, {
+                // エラーが発生しそうな引数での呼び出し
+                b.callFunction(func_, withArgs: [b.loadInt(0), b.loadInt(0)])
+            }, {
+                // 大きな値での呼び出し
+                b.callFunction(func_, withArgs: [b.loadInt(Int64.max), b.loadInt(Int64.min)])
+            })
+        }
+
+        // 条件分岐を含むテスト
+        let condition = b.compare(b.getWasmGlobal(instance, name: "flag"), with: b.loadInt(1), using: .equal)
+        b.buildIfElse(condition, 
+            ifBody: {
+                // trueの場合の処理
+                let func1 = b.getWasmExport(instance, "true_path")
+                b.callFunction(func1, withArgs: [b.loadInt(1)])
+            },
+            elseBody: {
+                // falseの場合の処理
+                let func2 = b.getWasmExport(instance, "false_path")
+                b.callFunction(func2, withArgs: [b.loadInt(0)])
+            }
+        )
+
+        // ループ内でのWASM関数呼び出し
+        b.buildRepeatLoop(n: 10) { i in
+            let func_ = b.getWasmExport(instance, "loop_func")
+            b.callFunction(func_, withArgs: [i])
+            
+            // メモリ操作も組み合わせる
+            // 固定のオフセットを使用
+            let data = [UInt8(Int.random(in: 0...255))]
+            b.writeWasmMemory(memory, offset: Int64(8), values: data)  // 固定オフセットを使用
+        }
+    },
 ]
