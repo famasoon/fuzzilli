@@ -206,6 +206,7 @@ message Instruction {
         Explore explore = 180;
         Probe probe = 181;
         Fixup fixup = 182;
+        InstantiateWasm instantiateWasm = 183;
     }
 }
 

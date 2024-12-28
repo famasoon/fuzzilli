@@ -759,7 +759,8 @@ public class FuzzILLifter: Lifter {
             w.emit("Print \(input(0))")
 
         case .instantiateWasm:
-            w.emit("\(output()) <- InstantiateWasm")
+            let imports = instr.inputs[1...].map({ "v\($0.number)" }).joined(separator: ", ")
+            w.emit("\(output()) <- InstantiateWasm v\(instr.input(0).number)\(imports.isEmpty ? "" : ", " + imports)")
         }
     }
 

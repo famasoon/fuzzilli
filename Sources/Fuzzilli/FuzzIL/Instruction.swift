@@ -840,10 +840,14 @@ extension Instruction: ProtobufConvertible {
                 $0.endBlockStatement = Fuzzilli_Protobuf_EndBlockStatement()
             case .loadNewTarget:
                 $0.loadNewTarget = Fuzzilli_Protobuf_LoadNewTarget()
-            case .print(_):
-                fatalError("Print operations should not be serialized")
-            case .instantiateWasm:
-                $0.instantiateWasm = Fuzzilli_Protobuf_InstantiateWasm()
+            case .nop:
+                $0.nop = Fuzzilli_Protobuf_Nop()
+            case .print:
+                fatalError("unreachable")
+            case .instantiateWasm(let p):
+                $0.instantiateWasm = Fuzzilli_Protobuf_InstantiateWasm.with {
+                    $0.numImports = Int32(p.numImports)
+                }
             }
         }
 
@@ -1268,8 +1272,8 @@ extension Instruction: ProtobufConvertible {
             op = Nop()
         case .print:
             fatalError("unreachable")
-        case .instantiateWasm:
-            op = InstantiateWasm()
+        case .instantiateWasm(let p):
+            op = InstantiateWasm(numImports: Int(p.numImports))
         }
 
         guard op.numInputs + op.numOutputs + op.numInnerOutputs == inouts.count else {

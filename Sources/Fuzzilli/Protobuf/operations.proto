@@ -756,34 +756,6 @@ message Nop {
 message Print {
 }
 
-// WASMに関連する操作の定義
-message WasmOperation {
-  oneof operation {
-    InstantiateWasm instantiate_wasm = 1;
-    GetWasmMemory get_wasm_memory = 2;
-    WriteWasmMemory write_wasm_memory = 3;
-    GetWasmGlobal get_wasm_global = 4;
-    GetWasmExport get_wasm_export = 5;
-  }
-}
-
 message InstantiateWasm {
-  int32 num_imports = 1;
-}
-
-message GetWasmMemory {
-  int32 memory_index = 1;
-}
-
-message WriteWasmMemory {
-  int64 offset = 1;
-  bytes data = 2;
-}
-
-message GetWasmGlobal {
-  string global_name = 1;
-}
-
-message GetWasmExport {
-  string export_name = 1;
+    int32 numImports = 1;
 }

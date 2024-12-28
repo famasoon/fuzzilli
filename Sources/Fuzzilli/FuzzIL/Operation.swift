@@ -156,7 +156,6 @@ final class Nop: Operation {
     }
 }
 
-
 // Expose the name of an operation as instance and class variable
 extension Operation {
     var name: String {

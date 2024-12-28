@@ -1,15 +1,17 @@
 import Foundation
 
 // WASMモジュールのインスタンス化
-public class InstantiateWasm: Operation {
+public final class InstantiateWasm: Operation {
+  override var opcode: Opcode { .instantiateWasm(self) }
+  
   let numImports: Int
-
-  init(numImports: Int) {
+  
+  public init(numImports: Int) {
     self.numImports = numImports
-    super.init(
-      numInputs: 1 + numImports,
-      numOutputs: 1,
-      requiredContext: .javascript)
+    super.init(numInputs: numImports + 1, 
+              numOutputs: 1, 
+              attributes: [.isMutable],
+              requiredContext: .javascript)
   }
 }
 

@@ -1288,8 +1288,11 @@ public class JavaScriptLifter: Lifter {
             case .print:
                 let VALUE = input(0)
                 w.emit("fuzzilli('FUZZILLI_PRINT', \(VALUE));")
-            case .instantiateWasm:
-                let expr = CallExpression.new() + "WebAssembly.instantiate" + input(0)
+            case .instantiateWasm(_):  // opを_に変更
+                let moduleExpr = inputAsIdentifier(0)
+                let importExprs = instr.inputs.dropFirst().map { inputAsIdentifier($0.number) }
+                let importArgs = importExprs.isEmpty ? "" : ", " + importExprs.map { $0.text }.joined(separator: ", ")
+                let expr = CallExpression.new() + moduleExpr + ".instantiate(" + importArgs + ")"
                 w.assign(expr, to: instr.output)
             }
 

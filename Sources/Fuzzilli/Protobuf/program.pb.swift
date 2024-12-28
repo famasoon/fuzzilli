@@ -1497,6 +1497,14 @@ public struct Fuzzilli_Protobuf_Instruction: Sendable {
     set {operation = .fixup(newValue)}
   }
 
+  public var instantiateWasm: Fuzzilli_Protobuf_InstantiateWasm {
+    get {
+      if case .instantiateWasm(let v)? = operation {return v}
+      return Fuzzilli_Protobuf_InstantiateWasm()
+    }
+    set {operation = .instantiateWasm(newValue)}
+  }
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public enum OneOf_Operation: Equatable, Sendable {
@@ -1681,6 +1689,7 @@ public struct Fuzzilli_Protobuf_Instruction: Sendable {
     case explore(Fuzzilli_Protobuf_Explore)
     case probe(Fuzzilli_Protobuf_Probe)
     case fixup(Fuzzilli_Protobuf_Fixup)
+    case instantiateWasm(Fuzzilli_Protobuf_InstantiateWasm)
 
   }
 
@@ -1912,6 +1921,7 @@ extension Fuzzilli_Protobuf_Instruction: SwiftProtobuf.Message, SwiftProtobuf._M
     180: .same(proto: "explore"),
     181: .same(proto: "probe"),
     182: .same(proto: "fixup"),
+    183: .same(proto: "instantiateWasm"),
   ]
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -4269,6 +4279,19 @@ extension Fuzzilli_Protobuf_Instruction: SwiftProtobuf.Message, SwiftProtobuf._M
           self.operation = .fixup(v)
         }
       }()
+      case 183: try {
+        var v: Fuzzilli_Protobuf_InstantiateWasm?
+        var hadOneofValue = false
+        if let current = self.operation {
+          hadOneofValue = true
+          if case .instantiateWasm(let m) = current {v = m}
+        }
+        try decoder.decodeSingularMessageField(value: &v)
+        if let v = v {
+          if hadOneofValue {try decoder.handleConflictingOneOf()}
+          self.operation = .instantiateWasm(v)
+        }
+      }()
       default: break
       }
     }
@@ -5006,6 +5029,10 @@ extension Fuzzilli_Protobuf_Instruction: SwiftProtobuf.Message, SwiftProtobuf._M
     case .fixup?: try {
       guard case .fixup(let v)? = self.operation else { preconditionFailure() }
       try visitor.visitSingularMessageField(value: v, fieldNumber: 182)
+    }()
+    case .instantiateWasm?: try {
+      guard case .instantiateWasm(let v)? = self.operation else { preconditionFailure() }
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 183)
     }()
     case nil: break
     }
