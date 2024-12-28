@@ -14,10 +14,17 @@
 
 /// Default weights for the builtin program templates.
 public let programTemplateWeights = [
-    "Codegen100":            2,
-    "Codegen50":             2,
-    "JIT1Function":          3,
-    "JIT2Functions":         3,
-    "JITTrickyFunction":     2,
-    "JSONFuzzer":            1,
+    "Codegen100": 2,
+    "Codegen50": 2,
+    "JIT1Function": 3,
+    "JIT2Functions": 3,
+    "JITTrickyFunction": 2,
+    "JSONFuzzer": 1,
+    "WasmFuzzer": 5,
+    "ComplexWasmFuzzer": 5,
+    "WasmMemoryTest": 5,
+    "WasmGlobalTest": 5,
+    "WasmFunctionTest": 5,
+    "WasmTableTest": 5,
+    "WasmImportTest": 5,
 ]
