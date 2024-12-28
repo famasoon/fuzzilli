@@ -436,4 +436,130 @@ public let ProgramTemplates = [
             b.writeWasmMemory(memory, offset: Int64(8), values: data)  // 固定オフセットを使用
         }
     },
+
+    // WASMテストケースを追加
+    ProgramTemplate("WasmMemoryTest") { b in
+        b.buildPrefix()
+        
+        // WASMモジュールを作成
+        let wasmModule = b.loadBuiltin("WebAssembly")
+        let moduleBytes = b.loadInt(Int64.random(in: 0...1000000))
+        let module = b.construct(wasmModule, withArgs: [moduleBytes])
+        
+        // インスタンス化
+        let instance = b.instantiateWasmModule(module)
+        
+        // メモリアクセスのテスト
+        let memory = b.getWasmMemory(instance)
+        
+        // 異なるパターンでメモリ操作を実行
+        let patterns = [
+            (0, 128),    // 先頭部分
+            (256, 384),  // 中間部分
+            (512, 640),  // 後半部分
+            (768, 896)   // 末尾部分
+        ]
+        
+        for (start, end) in patterns {
+            // ランダムなデータを書き込む
+            let offset = Int64.random(in: Int64(start)...Int64(end))
+            let data = (0..<Int.random(in: 16...64)).map { _ in UInt8.random(in: 0...255) }
+            b.writeWasmMemory(memory, offset: offset, values: data)
+            
+            // メモリ操作の間に関数呼び出しを挟む
+            if probability(0.5) {
+                let func_ = b.getWasmExport(instance, "test_func")
+                b.callFunction(func_, withArgs: [b.loadInt(offset)])
+            }
+        }
+    },
+
+    ProgramTemplate("WasmGlobalTest") { b in
+        b.buildPrefix()
+        
+        let wasmModule = b.loadBuiltin("WebAssembly")
+        let moduleBytes = b.loadInt(Int64.random(in: 0...1000000))
+        let module = b.construct(wasmModule, withArgs: [moduleBytes])
+        let instance = b.instantiateWasmModule(module)
+        
+        // 複数のグローバル変数を操作
+        let globalNames = ["g1", "g2", "g3", "accumulator"] 
+        for name in globalNames {
+            let global = b.getWasmGlobal(instance, name: name)
+            
+            // グローバル変数に対して様々な演算を実行
+            withEqualProbability({
+                b.binary(global, b.loadInt(42), with: .Add)
+            }, {
+                b.binary(global, b.loadInt(2), with: .Mul) 
+            }, {
+                b.binary(global, b.loadFloat(3.14), with: .Div)
+            })
+        }
+    },
+
+    ProgramTemplate("WasmFunctionTest") { b in
+        b.buildPrefix()
+        
+        let wasmModule = b.loadBuiltin("WebAssembly")
+        let moduleBytes = b.loadInt(Int64.random(in: 0...1000000))
+        let module = b.construct(wasmModule, withArgs: [moduleBytes])
+        let instance = b.instantiateWasmModule(module)
+        
+        // エクスポートされた関数を様々なパターンで呼び出す
+        let exportNames = ["add", "sub", "mul", "div", "mod"]
+        for name in exportNames {
+            let func_ = b.getWasmExport(instance, name)
+            
+            // 関数呼び出しのバリエーション
+            withEqualProbability({
+                // 通常の呼び出し
+                b.callFunction(func_, withArgs: [b.loadInt(42), b.loadInt(7)])
+            }, {
+                // エラーが発生しそうな引数での呼び出し
+                b.callFunction(func_, withArgs: [b.loadInt(0), b.loadInt(0)])
+            }, {
+                // 大きな値での呼び出し
+                b.callFunction(func_, withArgs: [b.loadInt(Int64.max), b.loadInt(Int64.min)])
+            })
+        }
+    },
+
+    ProgramTemplate("WasmImportTest") { b in
+        b.buildPrefix()
+        
+        let wasmModule = b.loadBuiltin("WebAssembly")
+        let moduleBytes = b.loadInt(Int64.random(in: 0...1000000))
+        let module = b.construct(wasmModule, withArgs: [moduleBytes])
+        
+        // インポートオブジェクトを作成
+        let importObj = b.buildObjectLiteral { obj in
+            // env名前空間を作成
+            let env = b.buildObjectLiteral { envObj in
+                // コールバック関数を追加
+                envObj.addMethod("callback", with: .parameters(n: 2)) { args in
+                    b.buildRecursive(n: 5)
+                    b.doReturn(args[0])
+                }
+                
+                // メモリを追加
+                let memory = b.construct(b.getProperty("Memory", of: wasmModule), 
+                                      withArgs: [b.loadInt(1)])
+                envObj.addProperty("memory", as: memory)
+                
+                // テーブルを追加
+                let table = b.construct(b.getProperty("Table", of: wasmModule),
+                                     withArgs: [b.loadInt(10), b.loadString("anyfunc")])
+                envObj.addProperty("table", as: table)
+            }
+            obj.addProperty("env", as: env)
+        }
+        
+        // インポートオブジェクトを使用してインスタンス化
+        let instance = b.instantiateWasmModule(module, withImports: [importObj])
+        
+        // エクスポートされた関数を呼び出し
+        let func_ = b.getWasmExport(instance, "test_func")
+        b.callFunction(func_, withArgs: [b.loadInt(42)])
+    }
 ]
