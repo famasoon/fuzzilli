@@ -197,10 +197,7 @@ public let codeGeneratorWeights = [
     "VoidGenerator": 1,
 
     // WASMジェネレータの重み
-    "WasmInstantiateGenerator": 50,  // モジュールのインスタンス化は最重要
-    "WasmMemoryGenerator": 40,  // メモリ操作は重要度が高い
-    "WasmGlobalGenerator": 30,  // グローバル変数操作
-    "WasmStructGenerator": 25,  // 構造体操作
-    "WasmArrayGenerator": 25,  // 配列操作
+    "WasmGenerator": 50,  // モジュールのインスタンス化は最重要
+    "WasmMemoryOperationsGenerator": 40,  // メモリ操作は重要度が高い
     "WasmTableGenerator": 30,  // テーブル操作
 ]
