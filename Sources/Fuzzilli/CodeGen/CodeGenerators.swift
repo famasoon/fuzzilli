@@ -1867,43 +1867,41 @@ public let CodeGenerators: [CodeGenerator] = [
     CodeGenerator("WasmGenerator") { b in
         // WebAssemblyのテストケースを必ず実行するために、try-catchで囲む
         b.buildTryCatchFinally(tryBody: {
-            // 基本的なWasmバイナリを生成 (シンプルな関数を含む)
-            let wasmBinary = b.createArray(with: [
-                b.loadInt(0x00), // マジックナンバー
-                b.loadInt(0x61), 
-                b.loadInt(0x73),
-                b.loadInt(0x6d),
-                b.loadInt(0x01), // バージョン
-                b.loadInt(0x00),
-                b.loadInt(0x00),
-                b.loadInt(0x00)
-            ])
+            // Uint8Arrayを使用してWASMバイナリを作成
+            let wasmBytes = [
+                // WASMモジュールのマジックナンバーとバージョン
+                0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+                // 他のWASMバイナリセクション...
+            ]
             
-            // インポートオブジェクトを作成
-            let importObj = b.createObject(with: [
-                "env": b.createObject(with: [
-                    "memory": b.construct(b.loadBuiltin("WebAssembly.Memory"), withArgs: [
-                        b.createObject(with: [
-                            "initial": b.loadInt(1),
-                            "maximum": b.loadInt(10)
-                        ])
-                    ])
-                ])
-            ])
-
-            // WebAssembly.Moduleをインスタンス化
+            // Uint8Arrayを作成
+            let Uint8Array = b.loadBuiltin("Uint8Array")
+            let wasmBuffer = b.createIntArray(with: wasmBytes.map { Int64($0) })
+            let wasmUint8Array = b.construct(Uint8Array, withArgs: [wasmBuffer])
+            
+            // WebAssembly.instantiate()を使用してモジュールをインスタンス化
             let WebAssembly = b.loadBuiltin("WebAssembly")
-            let module = b.callMethod("compile", on: WebAssembly, withArgs: [wasmBinary])
+            let instance = b.callMethod("instantiate", on: WebAssembly, withArgs: [wasmUint8Array])
             
-            // WebAssembly.Instanceを作成
-            let instance = b.callMethod("instantiate", on: WebAssembly, withArgs: [module, importObj])
+            // メモリにアクセス
+            let memory = b.getWasmMemory(instance)
             
-            // エクスポートされた関数を取得して実行
-            let exports = b.getProperty("exports", of: instance)
-            b.callMethod("main", on: exports, withArgs: [], guard: true)
+            // ランダムなデータを書き込む
+            for _ in 0..<5 {
+                let offset = Int64.random(in: 0..<1024)
+                let data = (0..<Int.random(in: 1...32)).map { _ in UInt8.random(in: 0...255) }
+                b.writeWasmMemory(memory, offset: offset, values: data)
+            }
+
+            // エクスポートされた関数を呼び出す
+            let exportNames = ["test_func1", "test_func2", "test_func3"]
+            for name in exportNames {
+                let func_ = b.getWasmExport(instance, name)
+                b.callFunction(func_, withArgs: b.randomArguments(forCalling: func_))
+            }
             
         }, catchBody: { error in
-            // エラーが発生したも処理を継続するため、undefinedを返す
+            // エラーが発生しても処理を継続するため、undefinedを返す
             b.loadUndefined()
         })
     },
