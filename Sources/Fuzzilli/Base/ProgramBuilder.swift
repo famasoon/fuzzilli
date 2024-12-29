@@ -2755,4 +2755,10 @@ public class ProgramBuilder {
     public func getWasmGlobal(_ instance: Variable, name: String) -> Variable {
         return emit(GetWasmGlobal(globalName: name), withInputs: [instance]).output
     }
+
+    @discardableResult
+    public func instantiateWasm(_ module: Variable, imports: [Variable] = []) -> Variable {
+        let op = InstantiateWasm(numImports: imports.count)
+        return emit(op, withInputs: [module] + imports).output
+    }
 }

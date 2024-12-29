@@ -846,6 +846,23 @@ extension Instruction: ProtobufConvertible {
                 $0.instantiateWasm = Fuzzilli_Protobuf_InstantiateWasm.with {
                     $0.numImports = Int32(p.numImports)
                 }
+            case .getWasmExport(let p):
+                $0.operation = .getWasmExport(Fuzzilli_Protobuf_GetWasmExport.with {
+                    $0.exportName = p.exportName
+                })
+            case .getWasmMemory(let p):
+                $0.operation = .getWasmMemory(Fuzzilli_Protobuf_GetWasmMemory.with {
+                    $0.memoryIndex = Int32(p.memoryIndex)
+                })
+            case .writeWasmMemory(let p):
+                $0.operation = .writeWasmMemory(Fuzzilli_Protobuf_WriteWasmMemory.with {
+                    $0.offset = p.offset
+                    $0.bytes = Data(p.bytes)
+                })
+            case .getWasmGlobal(let p):
+                $0.operation = .getWasmGlobal(Fuzzilli_Protobuf_GetWasmGlobal.with {
+                    $0.globalName = p.globalName
+                })
             }
         }
 
@@ -1272,6 +1289,14 @@ extension Instruction: ProtobufConvertible {
             fatalError("unreachable")
         case .instantiateWasm(let p):
             op = InstantiateWasm(numImports: Int(p.numImports))
+        case .getWasmExport(let p):
+            op = GetWasmExport(exportName: p.exportName)
+        case .getWasmMemory(let p):
+            op = GetWasmMemory(memoryIndex: Int(p.memoryIndex))
+        case .writeWasmMemory(let p):
+            op = WriteWasmMemory(offset: p.offset, bytes: Array(p.bytes))
+        case .getWasmGlobal(let p):
+            op = GetWasmGlobal(globalName: p.globalName)
         }
 
         guard op.numInputs + op.numOutputs + op.numInnerOutputs == inouts.count else {

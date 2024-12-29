@@ -1294,6 +1294,27 @@ public class JavaScriptLifter: Lifter {
                 let importArgs = importExprs.isEmpty ? "" : ", " + importExprs.map { $0.text }.joined(separator: ", ")
                 let expr = CallExpression.new() + moduleExpr + ".instantiate(" + importArgs + ")"
                 w.assign(expr, to: instr.output)
+            case .getWasmExport(let p):
+                let instance = inputAsIdentifier(0)
+                let expr = MemberExpression.new() + instance + ".exports['" + p.exportName + "']"
+                w.assign(expr, to: instr.output)
+            case .getWasmMemory(let p):
+                let instance = inputAsIdentifier(0)
+                let expr = MemberExpression.new() + instance + ".memory[" + String(p.memoryIndex) + "]"
+                w.assign(expr, to: instr.output)
+            case .writeWasmMemory(let p):
+                let memory = inputAsIdentifier(0)
+                let bytes = p.bytes.map { String($0) }.joined(separator: ",")
+                let offset = String(p.offset)
+                
+                // 式を正しい形式で構築
+                let arrayExpr = "new Uint8Array(" + memory.text + ".buffer)"
+                let setCallExpr = arrayExpr + ".set([" + bytes + "], " + offset + ")"
+                w.emit(setCallExpr)
+            case .getWasmGlobal(let p):
+                let instance = inputAsIdentifier(0)
+                let expr = MemberExpression.new() + instance + ".globals['" + p.globalName + "']"
+                w.assign(expr, to: instr.output)
             }
 
             // Handling of guarded operations, part 2: emit the guarded operation and surround it with a try-catch.
@@ -1910,5 +1931,19 @@ public class JavaScriptLifter: Lifter {
                 return analyzer.numUses(of: v) <= 1
             }
         }
+    }
+
+    func lift(_ i: InstantiateWasm, with inputs: [String], output: String) -> String {
+        let wasmBinary = inputs[0]
+        var importObjects: [String] = []
+        
+        // インポートオブジェクトを収集
+        for i in 1..<inputs.count {
+            importObjects.append(inputs[i])
+        }
+        
+        // WebAssembly.instantiate呼び出しを構築
+        let imports = importObjects.isEmpty ? "" : ", { imports: {\(importObjects.joined(separator: ", "))} }"
+        return "\(output) = await WebAssembly.instantiate(\(wasmBinary)\(imports))"
     }
 }

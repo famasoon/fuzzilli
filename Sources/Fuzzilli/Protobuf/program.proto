@@ -207,6 +207,10 @@ message Instruction {
         Probe probe = 181;
         Fixup fixup = 182;
         InstantiateWasm instantiateWasm = 183;
+        GetWasmExport getWasmExport = 201;
+        GetWasmMemory getWasmMemory = 202;
+        WriteWasmMemory writeWasmMemory = 203;
+        GetWasmGlobal getWasmGlobal = 204;
     }
 }
 

@@ -759,3 +759,20 @@ message Print {
 message InstantiateWasm {
     int32 numImports = 1;
 }
+
+message GetWasmExport {
+    string exportName = 1;
+}
+
+message GetWasmMemory {
+    int32 memoryIndex = 1;
+}
+
+message WriteWasmMemory {
+    int64 offset = 1;
+    bytes bytes = 2;
+}
+
+message GetWasmGlobal {
+    string globalName = 1;
+}

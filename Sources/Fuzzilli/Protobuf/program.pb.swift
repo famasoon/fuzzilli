@@ -1505,6 +1505,38 @@ public struct Fuzzilli_Protobuf_Instruction: Sendable {
     set {operation = .instantiateWasm(newValue)}
   }
 
+  public var getWasmExport: Fuzzilli_Protobuf_GetWasmExport {
+    get {
+      if case .getWasmExport(let v)? = operation {return v}
+      return Fuzzilli_Protobuf_GetWasmExport()
+    }
+    set {operation = .getWasmExport(newValue)}
+  }
+
+  public var getWasmMemory: Fuzzilli_Protobuf_GetWasmMemory {
+    get {
+      if case .getWasmMemory(let v)? = operation {return v}
+      return Fuzzilli_Protobuf_GetWasmMemory()
+    }
+    set {operation = .getWasmMemory(newValue)}
+  }
+
+  public var writeWasmMemory: Fuzzilli_Protobuf_WriteWasmMemory {
+    get {
+      if case .writeWasmMemory(let v)? = operation {return v}
+      return Fuzzilli_Protobuf_WriteWasmMemory()
+    }
+    set {operation = .writeWasmMemory(newValue)}
+  }
+
+  public var getWasmGlobal: Fuzzilli_Protobuf_GetWasmGlobal {
+    get {
+      if case .getWasmGlobal(let v)? = operation {return v}
+      return Fuzzilli_Protobuf_GetWasmGlobal()
+    }
+    set {operation = .getWasmGlobal(newValue)}
+  }
+
   public var unknownFields = SwiftProtobuf.UnknownStorage()
 
   public enum OneOf_Operation: Equatable, Sendable {
@@ -1690,6 +1722,10 @@ public struct Fuzzilli_Protobuf_Instruction: Sendable {
     case probe(Fuzzilli_Protobuf_Probe)
     case fixup(Fuzzilli_Protobuf_Fixup)
     case instantiateWasm(Fuzzilli_Protobuf_InstantiateWasm)
+    case getWasmExport(Fuzzilli_Protobuf_GetWasmExport)
+    case getWasmMemory(Fuzzilli_Protobuf_GetWasmMemory)
+    case writeWasmMemory(Fuzzilli_Protobuf_WriteWasmMemory)
+    case getWasmGlobal(Fuzzilli_Protobuf_GetWasmGlobal)
 
   }
 
@@ -1922,6 +1958,10 @@ extension Fuzzilli_Protobuf_Instruction: SwiftProtobuf.Message, SwiftProtobuf._M
     181: .same(proto: "probe"),
     182: .same(proto: "fixup"),
     183: .same(proto: "instantiateWasm"),
+    201: .same(proto: "getWasmExport"),
+    202: .same(proto: "getWasmMemory"),
+    203: .same(proto: "writeWasmMemory"),
+    204: .same(proto: "getWasmGlobal"),
   ]
 
   public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
@@ -4292,6 +4332,58 @@ extension Fuzzilli_Protobuf_Instruction: SwiftProtobuf.Message, SwiftProtobuf._M
           self.operation = .instantiateWasm(v)
         }
       }()
+      case 201: try {
+        var v: Fuzzilli_Protobuf_GetWasmExport?
+        var hadOneofValue = false
+        if let current = self.operation {
+          hadOneofValue = true
+          if case .getWasmExport(let m) = current {v = m}
+        }
+        try decoder.decodeSingularMessageField(value: &v)
+        if let v = v {
+          if hadOneofValue {try decoder.handleConflictingOneOf()}
+          self.operation = .getWasmExport(v)
+        }
+      }()
+      case 202: try {
+        var v: Fuzzilli_Protobuf_GetWasmMemory?
+        var hadOneofValue = false
+        if let current = self.operation {
+          hadOneofValue = true
+          if case .getWasmMemory(let m) = current {v = m}
+        }
+        try decoder.decodeSingularMessageField(value: &v)
+        if let v = v {
+          if hadOneofValue {try decoder.handleConflictingOneOf()}
+          self.operation = .getWasmMemory(v)
+        }
+      }()
+      case 203: try {
+        var v: Fuzzilli_Protobuf_WriteWasmMemory?
+        var hadOneofValue = false
+        if let current = self.operation {
+          hadOneofValue = true
+          if case .writeWasmMemory(let m) = current {v = m}
+        }
+        try decoder.decodeSingularMessageField(value: &v)
+        if let v = v {
+          if hadOneofValue {try decoder.handleConflictingOneOf()}
+          self.operation = .writeWasmMemory(v)
+        }
+      }()
+      case 204: try {
+        var v: Fuzzilli_Protobuf_GetWasmGlobal?
+        var hadOneofValue = false
+        if let current = self.operation {
+          hadOneofValue = true
+          if case .getWasmGlobal(let m) = current {v = m}
+        }
+        try decoder.decodeSingularMessageField(value: &v)
+        if let v = v {
+          if hadOneofValue {try decoder.handleConflictingOneOf()}
+          self.operation = .getWasmGlobal(v)
+        }
+      }()
       default: break
       }
     }
@@ -5033,6 +5125,22 @@ extension Fuzzilli_Protobuf_Instruction: SwiftProtobuf.Message, SwiftProtobuf._M
     case .instantiateWasm?: try {
       guard case .instantiateWasm(let v)? = self.operation else { preconditionFailure() }
       try visitor.visitSingularMessageField(value: v, fieldNumber: 183)
+    }()
+    case .getWasmExport?: try {
+      guard case .getWasmExport(let v)? = self.operation else { preconditionFailure() }
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 201)
+    }()
+    case .getWasmMemory?: try {
+      guard case .getWasmMemory(let v)? = self.operation else { preconditionFailure() }
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 202)
+    }()
+    case .writeWasmMemory?: try {
+      guard case .writeWasmMemory(let v)? = self.operation else { preconditionFailure() }
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 203)
+    }()
+    case .getWasmGlobal?: try {
+      guard case .getWasmGlobal(let v)? = self.operation else { preconditionFailure() }
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 204)
     }()
     case nil: break
     }

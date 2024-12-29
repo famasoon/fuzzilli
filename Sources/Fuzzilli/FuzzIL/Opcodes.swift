@@ -209,4 +209,8 @@ enum Opcode {
     case probe(Probe)
     case fixup(Fixup)
     case instantiateWasm(InstantiateWasm)
+    case getWasmExport(GetWasmExport)
+    case getWasmMemory(GetWasmMemory)
+    case writeWasmMemory(WriteWasmMemory)
+    case getWasmGlobal(GetWasmGlobal)
 }

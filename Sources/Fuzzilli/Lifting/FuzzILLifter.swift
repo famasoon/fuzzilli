@@ -761,6 +761,18 @@ public class FuzzILLifter: Lifter {
         case .instantiateWasm:
             let imports = instr.inputs[1...].map({ "v\($0.number)" }).joined(separator: ", ")
             w.emit("\(output()) <- InstantiateWasm v\(instr.input(0).number)\(imports.isEmpty ? "" : ", " + imports)")
+
+        case .getWasmExport(let op):
+            w.emit("\(output()) <- GetWasmExport '\(op.exportName)'")
+
+        case .getWasmMemory(let op):
+            w.emit("\(output()) <- GetWasmMemory '\(op.memoryIndex)'")
+
+        case .writeWasmMemory(let op):
+            w.emit("WriteWasmMemory offset: \(op.offset), bytes: \(op.bytes)")
+
+        case .getWasmGlobal(let op):
+            w.emit("\(output()) <- GetWasmGlobal '\(op.globalName)'")
         }
     }
 

@@ -1862,6 +1862,24 @@ public let CodeGenerators: [CodeGenerator] = [
             let args = b.findOrGenerateArguments(forSignature: signature)
             b.callFunction(f, withArgs: args)
         }, catchBody: { _ in })
+    },
+
+    CodeGenerator("WasmGenerator") { b in
+        // Uint8Arrayを生成
+        let wasmBinary = b.loadBuiltin("createWasmBinary")
+        
+        // インポートオブジェクトを生成（オプション）
+        var imports: [Variable] = []
+        if probability(0.5) {
+            let numImports = Int.random(in: 1...3)
+            for _ in 0..<numImports {
+                let importObj = b.createObject(with: ["memory": b.loadBuiltin("Memory")])
+                imports.append(importObj)
+            }
+        }
+        
+        // WASMモジュールをインスタンス化
+        b.instantiateWasm(wasmBinary, imports: imports)
     }
 ]
 
