@@ -14,38 +14,60 @@
 
 public class JavaScriptEnvironment: ComponentBase, Environment {
     // Possible return values of the 'typeof' operator.
-    public static let jsTypeNames = ["undefined", "boolean", "number", "string", "symbol", "function", "object", "bigint"]
+    public static let jsTypeNames = [
+        "undefined", "boolean", "number", "string", "symbol", "function", "object", "bigint",
+    ]
 
     // Integer values that are more likely to trigger edge-cases.
     public static let InterestingIntegers: [Int64] = [
-        -9223372036854775808, -9223372036854775807,               // Int64 min, mostly for BigInts
-        -9007199254740992, -9007199254740991, -9007199254740990,  // Smallest integer value that is still precisely representable by a double
-        -4294967297, -4294967296, -4294967295,                    // Negative Uint32 max
-        -2147483649, -2147483648, -2147483647,                    // Int32 min
-        -1073741824, -536870912, -268435456,                      // -2**32 / {4, 8, 16}
-        -65537, -65536, -65535,                                   // -2**16
-        -4096, -1024, -256, -128,                                 // Other powers of two
-        -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 16, 64,         // Numbers around 0
-        127, 128, 129,                                            // 2**7
-        255, 256, 257,                                            // 2**8
-        512, 1000, 1024, 4096, 10000,                             // Misc numbers
-        65535, 65536, 65537,                                      // 2**16
-        268435439, 268435440, 268435441,                          // V8 String kMaxLength (32-bit)
-        536870887, 536870888, 536870889,                          // V8 String kMaxLength (64-bit)
-        268435456, 536870912, 1073741824,                         // 2**32 / {4, 8, 16}
-        1073741823, 1073741824, 1073741825,                       // 2**30
-        2147483647, 2147483648, 2147483649,                       // Int32 max
-        4294967295, 4294967296, 4294967297,                       // Uint32 max
-        9007199254740990, 9007199254740991, 9007199254740992,     // Biggest integer value that is still precisely representable by a double
-        9223372036854775807,                                      // Int64 max, mostly for BigInts
+        -9_223_372_036_854_775_808, -9_223_372_036_854_775_807,  // Int64 min, mostly for BigInts
+        -9_007_199_254_740_992, -9_007_199_254_740_991, -9_007_199_254_740_990,  // Smallest integer value that is still precisely representable by a double
+        -4_294_967_297, -4_294_967_296, -4_294_967_295,  // Negative Uint32 max
+        -2_147_483_649, -2_147_483_648, -2_147_483_647,  // Int32 min
+        -1_073_741_824, -536_870_912, -268_435_456,  // -2**32 / {4, 8, 16}
+        -65537, -65536, -65535,  // -2**16
+        -4096, -1024, -256, -128,  // Other powers of two
+        -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 16, 64,  // Numbers around 0
+        127, 128, 129,  // 2**7
+        255, 256, 257,  // 2**8
+        512, 1000, 1024, 4096, 10000,  // Misc numbers
+        65535, 65536, 65537,  // 2**16
+        268_435_439, 268_435_440, 268_435_441,  // V8 String kMaxLength (32-bit)
+        536_870_887, 536_870_888, 536_870_889,  // V8 String kMaxLength (64-bit)
+        268_435_456, 536_870_912, 1_073_741_824,  // 2**32 / {4, 8, 16}
+        1_073_741_823, 1_073_741_824, 1_073_741_825,  // 2**30
+        2_147_483_647, 2_147_483_648, 2_147_483_649,  // Int32 max
+        4_294_967_295, 4_294_967_296, 4_294_967_297,  // Uint32 max
+        9_007_199_254_740_990, 9_007_199_254_740_991, 9_007_199_254_740_992,  // Biggest integer value that is still precisely representable by a double
+        9_223_372_036_854_775_807,  // Int64 max, mostly for BigInts
+        0x7FFF_FFFF,  // i32の最大値
+        -0x8000_0000,  // i32の最小値
+        0xFFFF_FFFF,  // u32の最大値
+        0x7FFF_FFFF_FFFF_FFFF,  // i64の最大値
+        -0x8000_0000_0000_0000,  // i64の最小値
+        0,  // メモリの先頭
+        65535,  // ページサイズ-1
+        65536,  // ページサイズ
+        131072,  // 2ページ
+        1_048_576,  // 16ページ
+        1, 2, 4, 8, 16, 32, 64, 128,
     ]
 
-    static let wellKnownSymbols = ["iterator", "asyncIterator", "match", "matchAll", "replace", "search", "split", "hasInstance", "isConcatSpreadable", "unscopables", "species", "toPrimitive", "toStringTag", "dispose", "asyncDispose"]
+    static let wellKnownSymbols = [
+        "iterator", "asyncIterator", "match", "matchAll", "replace", "search", "split",
+        "hasInstance", "isConcatSpreadable", "unscopables", "species", "toPrimitive", "toStringTag",
+        "dispose", "asyncDispose",
+    ]
 
     public let interestingIntegers = InterestingIntegers
 
     // Double values that are more likely to trigger edge-cases.
-    public let interestingFloats = [-Double.infinity, -Double.greatestFiniteMagnitude, -1e-15, -1e12, -1e9, -1e6, -1e3, -5.0, -4.0, -3.0, -2.0, -1.0, -Double.ulpOfOne, -Double.leastNormalMagnitude, -0.0, 0.0, Double.leastNormalMagnitude, Double.ulpOfOne, 1.0, 2.0, 3.0, 4.0, 5.0, 1e3, 1e6, 1e9, 1e12, 1e-15, Double.greatestFiniteMagnitude, Double.infinity, Double.nan]
+    public let interestingFloats = [
+        -Double.infinity, -Double.greatestFiniteMagnitude, -1e-15, -1e12, -1e9, -1e6, -1e3, -5.0,
+        -4.0, -3.0, -2.0, -1.0, -Double.ulpOfOne, -Double.leastNormalMagnitude, -0.0, 0.0,
+        Double.leastNormalMagnitude, Double.ulpOfOne, 1.0, 2.0, 3.0, 4.0, 5.0, 1e3, 1e6, 1e9, 1e12,
+        1e-15, Double.greatestFiniteMagnitude, Double.infinity, Double.nan,
+    ]
 
     // TODO more?
     public let interestingStrings = jsTypeNames
@@ -54,227 +76,230 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
     // https://cs.chromium.org/chromium/src/testing/libfuzzer/fuzzers/dicts/regexp.dict
     public let interestingRegExps = [
         // These do *not* work with unicode or unicodeSets
-        (pattern: #"a\q"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"{12,3b"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"a{z}"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[z-\d]"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"{z}"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"{"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"(x)(x)(x)(x)(x)(x)(x)(x)(x)(x)\11"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[\111]"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"\c!"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[\11a]"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[\c!]"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[\c~]"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"\[\]\{\}\(\)\%\^\#\ "#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[\[\]\{\}\(\)\%\^\#\ ]"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"\118"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[\00011]"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"\c~"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"{,}"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[-123]"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[-\xf0\x9f\x92\xa9]+"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"a{,}"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"{12,"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"(?!a)?a"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"\111"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"(?!a)?a\1"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[\1111]"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"a{12,3b"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[\c1]"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"(?=a){0,10}a"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"\q"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"a{12z}"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"\011"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[\d-z]"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[\011]"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"\8"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"\11a"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[\118]"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"\1112"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"a{12,"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[\d-\d]"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"\11"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"(x)(x)(x)\4*"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"(?:(?=a))a\1"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"a{}"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"\c_"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"a{"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"(x)(x)(x)\4"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"\c"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"\x3z"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[\c_]"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"]"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"{1z}"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"(?=a){1,10}a"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"\1111"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"\u003z"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[\11]"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"\9"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"}"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"{}"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"(?=a){9,10}a"#, incompatibleFlags:  .unicode | .unicodeSets),
-        (pattern: #"[a-b-c]"#, incompatibleFlags:  .unicode | .unicodeSets),
+        (pattern: #"a\q"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"{12,3b"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"a{z}"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"[z-\d]"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"{z}"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"{"#, incompatibleFlags: .unicode | .unicodeSets),
+        (
+            pattern: #"(x)(x)(x)(x)(x)(x)(x)(x)(x)(x)\11"#,
+            incompatibleFlags: .unicode | .unicodeSets
+        ),
+        (pattern: #"[\111]"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"\c!"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"[\11a]"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"[\c!]"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"[\c~]"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"\[\]\{\}\(\)\%\^\#\ "#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"[\[\]\{\}\(\)\%\^\#\ ]"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"\118"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"[\00011]"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"\c~"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"{,}"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"[-123]"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"[-\xf0\x9f\x92\xa9]+"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"a{,}"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"{12,"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"(?!a)?a"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"\111"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"(?!a)?a\1"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"[\1111]"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"a{12,3b"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"[\c1]"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"(?=a){0,10}a"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"\q"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"a{12z}"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"\011"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"[\d-z]"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"[\011]"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"\8"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"\11a"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"[\118]"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"\1112"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"a{12,"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"[\d-\d]"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"\11"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"(x)(x)(x)\4*"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"(?:(?=a))a\1"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"a{}"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"\c_"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"a{"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"(x)(x)(x)\4"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"\c"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"\x3z"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"[\c_]"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"]"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"{1z}"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"(?=a){1,10}a"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"\1111"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"\u003z"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"[\11]"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"\9"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"}"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"{}"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"(?=a){9,10}a"#, incompatibleFlags: .unicode | .unicodeSets),
+        (pattern: #"[a-b-c]"#, incompatibleFlags: .unicode | .unicodeSets),
 
         // These work with all flags
-        (pattern: #"(x)(x)(x)\1*"#, incompatibleFlags:  .empty),
-        (pattern: #"\x01"#, incompatibleFlags:  .empty),
-        (pattern: #"(?: foo )"#, incompatibleFlags:  .empty),
-        (pattern: #"(ab|cde)"#, incompatibleFlags:  .empty),
-        (pattern: #"foo|(bar|baz)|quux"#, incompatibleFlags:  .empty),
-        (pattern: #"(?:a*)*"#, incompatibleFlags:  .empty),
-        (pattern: #"a{0,1}?"#, incompatibleFlags:  .empty),
-        (pattern: #"(?:a+)?"#, incompatibleFlags:  .empty),
-        (pattern: #"a$"#, incompatibleFlags:  .empty),
-        (pattern: #"a(?=b)"#, incompatibleFlags:  .empty),
-        (pattern: #"foo[z]*"#, incompatibleFlags:  .empty),
-        (pattern: #"\u{12345}\u{23456}"#, incompatibleFlags:  .empty),
-        (pattern: #"(?!(a))\1"#, incompatibleFlags:  .empty),
-        (pattern: #"abc+?"#, incompatibleFlags:  .empty),
-        (pattern: #"a*b"#, incompatibleFlags:  .empty),
-        (pattern: #"(?:a?)*"#, incompatibleFlags:  .empty),
-        (pattern: #"\xf0\x9f\x92\xa9"#, incompatibleFlags:  .empty),
-        (pattern: #"a{1,2}?"#, incompatibleFlags:  .empty),
-        (pattern: #"a\n"#, incompatibleFlags:  .empty),
-        (pattern: #"\P{Decimal_Number}"#, incompatibleFlags:  .empty),
-        (pattern: #"(?=)"#, incompatibleFlags:  .empty),
-        (pattern: #"\1(a)"#, incompatibleFlags:  .empty),
-        (pattern: #"."#, incompatibleFlags:  .empty),
-        (pattern: #"()"#, incompatibleFlags:  .empty),
-        (pattern: #"(a)"#, incompatibleFlags:  .empty),
-        (pattern: #"(?:a{5,1000000}){3,1000000}"#, incompatibleFlags:  .empty),
-        (pattern: #"a\Sc"#, incompatibleFlags:  .empty),
-        (pattern: #"a(?=b)c"#, incompatibleFlags:  .empty),
-        (pattern: #"a{0}"#, incompatibleFlags:  .empty),
-        (pattern: #"(?:a*)+"#, incompatibleFlags:  .empty),
-        (pattern: #"\ud808\udf45*"#, incompatibleFlags:  .empty),
-        (pattern: #"a\w"#, incompatibleFlags:  .empty),
-        (pattern: #"(?:a+)*"#, incompatibleFlags:  .empty),
-        (pattern: #"a(?:b)"#, incompatibleFlags:  .empty),
-        (pattern: #"(?<=a)"#, incompatibleFlags:  .empty),
-        (pattern: #"(x)(x)(x)\3"#, incompatibleFlags:  .empty),
-        (pattern: #"foo(?<=bar)baz"#, incompatibleFlags:  .empty),
-        (pattern: #"\xe2\x81\xa3"#, incompatibleFlags:  .empty),
-        (pattern: #"ab\b\d\bcd"#, incompatibleFlags:  .empty),
-        (pattern: #"[\ca]"#, incompatibleFlags:  .empty),
-        (pattern: #"[\xf0\x9f\x92\xa9-\xf4\x8f\xbf\xbf]"#, incompatibleFlags:  .empty),
-        (pattern: #"\p{Script_Extensions=Greek}"#, incompatibleFlags:  .empty),
-        (pattern: #"\cj\cJ\ci\cI\ck\cK"#, incompatibleFlags:  .empty),
-        (pattern: #"a\fb\nc\rd\te\vf"#, incompatibleFlags:  .empty),
-        (pattern: #"\p{General_Category=Decimal_Number}"#, incompatibleFlags:  .empty),
-        (pattern: #"\u{12345}"#, incompatibleFlags:  .empty),
-        (pattern: #"a\b!"#, incompatibleFlags:  .empty),
-        (pattern: #"a[^a]"#, incompatibleFlags:  .empty),
-        (pattern: #"\1\2(a(?:\1(b\1\2))\2)\1"#, incompatibleFlags:  .empty),
-        (pattern: #"(?:ab)+"#, incompatibleFlags:  .empty),
-        (pattern: #"[^123]"#, incompatibleFlags:  .empty),
-        (pattern: #"a(?!b)"#, incompatibleFlags:  .empty),
-        (pattern: #"a\Bb"#, incompatibleFlags:  .empty),
-        (pattern: #"(?:ab)?"#, incompatibleFlags:  .empty),
-        (pattern: #"(?<a>)"#, incompatibleFlags:  .empty),
-        (pattern: #"(?<!)"#, incompatibleFlags:  .empty),
-        (pattern: #"a."#, incompatibleFlags:  .empty),
-        (pattern: #"[]"#, incompatibleFlags:  .empty),
-        (pattern: #"a\S"#, incompatibleFlags:  .empty),
-        (pattern: #"abc"#, incompatibleFlags:  .empty),
-        (pattern: #"(?<!a)"#, incompatibleFlags:  .empty),
-        (pattern: #"\x60"#, incompatibleFlags:  .empty),
-        (pattern: #"[\p{Script_Extensions=Mongolian}&&\p{Number}]"#, incompatibleFlags:  .empty),
-        (pattern: #"a\nb\bc"#, incompatibleFlags:  .empty),
-        (pattern: #"(?:ab)|cde"#, incompatibleFlags:  .empty),
-        (pattern: #"^"#, incompatibleFlags:  .empty),
-        (pattern: #"a\W"#, incompatibleFlags:  .empty),
-        (pattern: #"a"#, incompatibleFlags:  .empty),
-        (pattern: #"a[a]"#, incompatibleFlags:  .empty),
-        (pattern: #"(x)(x)(x)\1"#, incompatibleFlags:  .empty),
-        (pattern: #"[\cA]"#, incompatibleFlags:  .empty),
-        (pattern: #"(ab)\1"#, incompatibleFlags:  .empty),
-        (pattern: #"a(?=bbb|bb)c"#, incompatibleFlags:  .empty),
-        (pattern: #"(x)(x)(x)(x)(x)(x)(x)(x)(x)(x)\10"#, incompatibleFlags:  .empty),
-        (pattern: #"\P{sc=Greek}"#, incompatibleFlags:  .empty),
-        (pattern: #"foo(?!bar)baz"#, incompatibleFlags:  .empty),
-        (pattern: #"xyz??"#, incompatibleFlags:  .empty),
-        (pattern: #"a[bc]d"#, incompatibleFlags:  .empty),
-        (pattern: #"a*?"#, incompatibleFlags:  .empty),
-        (pattern: #"((\xed\xa0\x80))\x02"#, incompatibleFlags:  .empty),
-        (pattern: #"a+"#, incompatibleFlags:  .empty),
-        (pattern: #"\P{scx=Greek}"#, incompatibleFlags:  .empty),
-        (pattern: #"(?<=)"#, incompatibleFlags:  .empty),
-        (pattern: #"(?:foo)"#, incompatibleFlags:  .empty),
-        (pattern: #"xyz{1,}?"#, incompatibleFlags:  .empty),
-        (pattern: #"(a)\1"#, incompatibleFlags:  .empty),
-        (pattern: #"a[a-z]"#, incompatibleFlags:  .empty),
-        (pattern: #"\p{Nd}"#, incompatibleFlags:  .empty),
-        (pattern: #"(?:ab)"#, incompatibleFlags:  .empty),
-        (pattern: #"a+b|c"#, incompatibleFlags:  .empty),
-        (pattern: #"(ab|cde)\1"#, incompatibleFlags:  .empty),
-        (pattern: #"(\xed\xb0\x80)\x01"#, incompatibleFlags:  .empty),
-        (pattern: #"((((.).).).)"#, incompatibleFlags:  .empty),
-        (pattern: #"(?:a?)+"#, incompatibleFlags:  .empty),
-        (pattern: #"(a\1)"#, incompatibleFlags:  .empty),
-        (pattern: #"\P{Any}"#, incompatibleFlags:  .empty),
-        (pattern: #"xyz{93}"#, incompatibleFlags:  .empty),
-        (pattern: #"\x0f"#, incompatibleFlags:  .empty),
-        (pattern: #"(ab)"#, incompatibleFlags:  .empty),
-        (pattern: #"\w|\d"#, incompatibleFlags:  .empty),
-        (pattern: #"xyz{1,32}"#, incompatibleFlags:  .empty),
-        (pattern: #"[x\dz]"#, incompatibleFlags:  .empty),
-        (pattern: #"\xed\xa0\x80"#, incompatibleFlags:  .empty),
-        (pattern: #"xyz{1,}"#, incompatibleFlags:  .empty),
-        (pattern: #"\p{gc=Nd}"#, incompatibleFlags:  .empty),
-        (pattern: #"\xed\xb0\x80"#, incompatibleFlags:  .empty),
-        (pattern: #"[\0]"#, incompatibleFlags:  .empty),
-        (pattern: #"^xxx$"#, incompatibleFlags:  .empty),
-        (pattern: #"a?"#, incompatibleFlags:  .empty),
-        (pattern: #"a\s"#, incompatibleFlags:  .empty),
-        (pattern: #"a+?"#, incompatibleFlags:  .empty),
-        (pattern: #"xyz{0,1}?"#, incompatibleFlags:  .empty),
-        (pattern: #"(\1a)"#, incompatibleFlags:  .empty),
-        (pattern: #"a(?!bbb|bb)c"#, incompatibleFlags:  .empty),
-        (pattern: #"\p{Script=Greek}"#, incompatibleFlags:  .empty),
-        (pattern: #"\u0060"#, incompatibleFlags:  .empty),
-        (pattern: #"[xyz]"#, incompatibleFlags:  .empty),
-        (pattern: #"(?:a+){0,0}"#, incompatibleFlags:  .empty),
-        (pattern: #"(\2)(\1)"#, incompatibleFlags:  .empty),
-        (pattern: #"xyz{1,32}?"#, incompatibleFlags:  .empty),
-        (pattern: #"(?<a>.)"#, incompatibleFlags:  .empty),
-        (pattern: #"[\cz]"#, incompatibleFlags:  .empty),
-        (pattern: #"(x)(x)(x)\3*"#, incompatibleFlags:  .empty),
-        (pattern: #"foo(?<!bar)baz"#, incompatibleFlags:  .empty),
-        (pattern: #"abc+"#, incompatibleFlags:  .empty),
-        (pattern: #"foo(?=bar)baz"#, incompatibleFlags:  .empty),
-        (pattern: #"a|bc"#, incompatibleFlags:  .empty),
-        (pattern: #"abc|def"#, incompatibleFlags:  .empty),
-        (pattern: #"a*b|c"#, incompatibleFlags:  .empty),
-        (pattern: #"(x)(x)(x)\2"#, incompatibleFlags:  .empty),
-        (pattern: #"(?<a>.)\k<a>"#, incompatibleFlags:  .empty),
-        (pattern: #"(?:a+)+"#, incompatibleFlags:  .empty),
-        (pattern: #"(?=.)"#, incompatibleFlags:  .empty),
-        (pattern: #"\p{Changes_When_NFKC_Casefolded}"#, incompatibleFlags:  .empty),
-        (pattern: #"a\sc"#, incompatibleFlags:  .empty),
-        (pattern: #"a||bc"#, incompatibleFlags:  .empty),
-        (pattern: #"a+b"#, incompatibleFlags:  .empty),
-        (pattern: #"[\cZ]"#, incompatibleFlags:  .empty),
-        (pattern: #"a|b"#, incompatibleFlags:  .empty),
-        (pattern: #"\u0034"#, incompatibleFlags:  .empty),
-        (pattern: #"\cA"#, incompatibleFlags:  .empty),
-        (pattern: #"ab|c"#, incompatibleFlags:  .empty),
-        (pattern: #"abc|def|ghi"#, incompatibleFlags:  .empty),
-        (pattern: #"(?:ab|cde)"#, incompatibleFlags:  .empty),
-        (pattern: #"xyz?"#, incompatibleFlags:  .empty),
-        (pattern: #"[a-zA-Z0-9]"#, incompatibleFlags:  .empty),
-        (pattern: #"(?:a?)?"#, incompatibleFlags:  .empty),
-        (pattern: #"xyz{0,1}"#, incompatibleFlags:  .empty),
-        (pattern: #"a\D"#, incompatibleFlags:  .empty),
-        (pattern: #"(?!\1(a\1)\1)\1"#, incompatibleFlags:  .empty),
-        (pattern: #"a\bc"#, incompatibleFlags:  .empty),
-        (pattern: #"\P{gc=Decimal_Number}"#, incompatibleFlags:  .empty),
-        (pattern: #"\b"#, incompatibleFlags:  .empty),
-        (pattern: #"[x]"#, incompatibleFlags:  .empty),
-        (pattern: #"(?:ab){4,7}"#, incompatibleFlags:  .empty),
-        (pattern: #"a??"#, incompatibleFlags:  .empty),
-        (pattern: #"(?<a>(?<b>(?<c>(?<d>.).).).)"#, incompatibleFlags:  .empty),
-        (pattern: #"[\xe2\x81\xa3]"#, incompatibleFlags:  .empty),
+        (pattern: #"(x)(x)(x)\1*"#, incompatibleFlags: .empty),
+        (pattern: #"\x01"#, incompatibleFlags: .empty),
+        (pattern: #"(?: foo )"#, incompatibleFlags: .empty),
+        (pattern: #"(ab|cde)"#, incompatibleFlags: .empty),
+        (pattern: #"foo|(bar|baz)|quux"#, incompatibleFlags: .empty),
+        (pattern: #"(?:a*)*"#, incompatibleFlags: .empty),
+        (pattern: #"a{0,1}?"#, incompatibleFlags: .empty),
+        (pattern: #"(?:a+)?"#, incompatibleFlags: .empty),
+        (pattern: #"a$"#, incompatibleFlags: .empty),
+        (pattern: #"a(?=b)"#, incompatibleFlags: .empty),
+        (pattern: #"foo[z]*"#, incompatibleFlags: .empty),
+        (pattern: #"\u{12345}\u{23456}"#, incompatibleFlags: .empty),
+        (pattern: #"(?!(a))\1"#, incompatibleFlags: .empty),
+        (pattern: #"abc+?"#, incompatibleFlags: .empty),
+        (pattern: #"a*b"#, incompatibleFlags: .empty),
+        (pattern: #"(?:a?)*"#, incompatibleFlags: .empty),
+        (pattern: #"\xf0\x9f\x92\xa9"#, incompatibleFlags: .empty),
+        (pattern: #"a{1,2}?"#, incompatibleFlags: .empty),
+        (pattern: #"a\n"#, incompatibleFlags: .empty),
+        (pattern: #"\P{Decimal_Number}"#, incompatibleFlags: .empty),
+        (pattern: #"(?=)"#, incompatibleFlags: .empty),
+        (pattern: #"\1(a)"#, incompatibleFlags: .empty),
+        (pattern: #"."#, incompatibleFlags: .empty),
+        (pattern: #"()"#, incompatibleFlags: .empty),
+        (pattern: #"(a)"#, incompatibleFlags: .empty),
+        (pattern: #"(?:a{5,1000000}){3,1000000}"#, incompatibleFlags: .empty),
+        (pattern: #"a\Sc"#, incompatibleFlags: .empty),
+        (pattern: #"a(?=b)c"#, incompatibleFlags: .empty),
+        (pattern: #"a{0}"#, incompatibleFlags: .empty),
+        (pattern: #"(?:a*)+"#, incompatibleFlags: .empty),
+        (pattern: #"\ud808\udf45*"#, incompatibleFlags: .empty),
+        (pattern: #"a\w"#, incompatibleFlags: .empty),
+        (pattern: #"(?:a+)*"#, incompatibleFlags: .empty),
+        (pattern: #"a(?:b)"#, incompatibleFlags: .empty),
+        (pattern: #"(?<=a)"#, incompatibleFlags: .empty),
+        (pattern: #"(x)(x)(x)\3"#, incompatibleFlags: .empty),
+        (pattern: #"foo(?<=bar)baz"#, incompatibleFlags: .empty),
+        (pattern: #"\xe2\x81\xa3"#, incompatibleFlags: .empty),
+        (pattern: #"ab\b\d\bcd"#, incompatibleFlags: .empty),
+        (pattern: #"[\ca]"#, incompatibleFlags: .empty),
+        (pattern: #"[\xf0\x9f\x92\xa9-\xf4\x8f\xbf\xbf]"#, incompatibleFlags: .empty),
+        (pattern: #"\p{Script_Extensions=Greek}"#, incompatibleFlags: .empty),
+        (pattern: #"\cj\cJ\ci\cI\ck\cK"#, incompatibleFlags: .empty),
+        (pattern: #"a\fb\nc\rd\te\vf"#, incompatibleFlags: .empty),
+        (pattern: #"\p{General_Category=Decimal_Number}"#, incompatibleFlags: .empty),
+        (pattern: #"\u{12345}"#, incompatibleFlags: .empty),
+        (pattern: #"a\b!"#, incompatibleFlags: .empty),
+        (pattern: #"a[^a]"#, incompatibleFlags: .empty),
+        (pattern: #"\1\2(a(?:\1(b\1\2))\2)\1"#, incompatibleFlags: .empty),
+        (pattern: #"(?:ab)+"#, incompatibleFlags: .empty),
+        (pattern: #"[^123]"#, incompatibleFlags: .empty),
+        (pattern: #"a(?!b)"#, incompatibleFlags: .empty),
+        (pattern: #"a\Bb"#, incompatibleFlags: .empty),
+        (pattern: #"(?:ab)?"#, incompatibleFlags: .empty),
+        (pattern: #"(?<a>)"#, incompatibleFlags: .empty),
+        (pattern: #"(?<!)"#, incompatibleFlags: .empty),
+        (pattern: #"a."#, incompatibleFlags: .empty),
+        (pattern: #"[]"#, incompatibleFlags: .empty),
+        (pattern: #"a\S"#, incompatibleFlags: .empty),
+        (pattern: #"abc"#, incompatibleFlags: .empty),
+        (pattern: #"(?<!a)"#, incompatibleFlags: .empty),
+        (pattern: #"\x60"#, incompatibleFlags: .empty),
+        (pattern: #"[\p{Script_Extensions=Mongolian}&&\p{Number}]"#, incompatibleFlags: .empty),
+        (pattern: #"a\nb\bc"#, incompatibleFlags: .empty),
+        (pattern: #"(?:ab)|cde"#, incompatibleFlags: .empty),
+        (pattern: #"^"#, incompatibleFlags: .empty),
+        (pattern: #"a\W"#, incompatibleFlags: .empty),
+        (pattern: #"a"#, incompatibleFlags: .empty),
+        (pattern: #"a[a]"#, incompatibleFlags: .empty),
+        (pattern: #"(x)(x)(x)\1"#, incompatibleFlags: .empty),
+        (pattern: #"[\cA]"#, incompatibleFlags: .empty),
+        (pattern: #"(ab)\1"#, incompatibleFlags: .empty),
+        (pattern: #"a(?=bbb|bb)c"#, incompatibleFlags: .empty),
+        (pattern: #"(x)(x)(x)(x)(x)(x)(x)(x)(x)(x)\10"#, incompatibleFlags: .empty),
+        (pattern: #"\P{sc=Greek}"#, incompatibleFlags: .empty),
+        (pattern: #"foo(?!bar)baz"#, incompatibleFlags: .empty),
+        (pattern: #"xyz??"#, incompatibleFlags: .empty),
+        (pattern: #"a[bc]d"#, incompatibleFlags: .empty),
+        (pattern: #"a*?"#, incompatibleFlags: .empty),
+        (pattern: #"((\xed\xa0\x80))\x02"#, incompatibleFlags: .empty),
+        (pattern: #"a+"#, incompatibleFlags: .empty),
+        (pattern: #"\P{scx=Greek}"#, incompatibleFlags: .empty),
+        (pattern: #"(?<=)"#, incompatibleFlags: .empty),
+        (pattern: #"(?:foo)"#, incompatibleFlags: .empty),
+        (pattern: #"xyz{1,}?"#, incompatibleFlags: .empty),
+        (pattern: #"(a)\1"#, incompatibleFlags: .empty),
+        (pattern: #"a[a-z]"#, incompatibleFlags: .empty),
+        (pattern: #"\p{Nd}"#, incompatibleFlags: .empty),
+        (pattern: #"(?:ab)"#, incompatibleFlags: .empty),
+        (pattern: #"a+b|c"#, incompatibleFlags: .empty),
+        (pattern: #"(ab|cde)\1"#, incompatibleFlags: .empty),
+        (pattern: #"(\xed\xb0\x80)\x01"#, incompatibleFlags: .empty),
+        (pattern: #"((((.).).).)"#, incompatibleFlags: .empty),
+        (pattern: #"(?:a?)+"#, incompatibleFlags: .empty),
+        (pattern: #"(a\1)"#, incompatibleFlags: .empty),
+        (pattern: #"\P{Any}"#, incompatibleFlags: .empty),
+        (pattern: #"xyz{93}"#, incompatibleFlags: .empty),
+        (pattern: #"\x0f"#, incompatibleFlags: .empty),
+        (pattern: #"(ab)"#, incompatibleFlags: .empty),
+        (pattern: #"\w|\d"#, incompatibleFlags: .empty),
+        (pattern: #"xyz{1,32}"#, incompatibleFlags: .empty),
+        (pattern: #"[x\dz]"#, incompatibleFlags: .empty),
+        (pattern: #"\xed\xa0\x80"#, incompatibleFlags: .empty),
+        (pattern: #"xyz{1,}"#, incompatibleFlags: .empty),
+        (pattern: #"\p{gc=Nd}"#, incompatibleFlags: .empty),
+        (pattern: #"\xed\xb0\x80"#, incompatibleFlags: .empty),
+        (pattern: #"[\0]"#, incompatibleFlags: .empty),
+        (pattern: #"^xxx$"#, incompatibleFlags: .empty),
+        (pattern: #"a?"#, incompatibleFlags: .empty),
+        (pattern: #"a\s"#, incompatibleFlags: .empty),
+        (pattern: #"a+?"#, incompatibleFlags: .empty),
+        (pattern: #"xyz{0,1}?"#, incompatibleFlags: .empty),
+        (pattern: #"(\1a)"#, incompatibleFlags: .empty),
+        (pattern: #"a(?!bbb|bb)c"#, incompatibleFlags: .empty),
+        (pattern: #"\p{Script=Greek}"#, incompatibleFlags: .empty),
+        (pattern: #"\u0060"#, incompatibleFlags: .empty),
+        (pattern: #"[xyz]"#, incompatibleFlags: .empty),
+        (pattern: #"(?:a+){0,0}"#, incompatibleFlags: .empty),
+        (pattern: #"(\2)(\1)"#, incompatibleFlags: .empty),
+        (pattern: #"xyz{1,32}?"#, incompatibleFlags: .empty),
+        (pattern: #"(?<a>.)"#, incompatibleFlags: .empty),
+        (pattern: #"[\cz]"#, incompatibleFlags: .empty),
+        (pattern: #"(x)(x)(x)\3*"#, incompatibleFlags: .empty),
+        (pattern: #"foo(?<!bar)baz"#, incompatibleFlags: .empty),
+        (pattern: #"abc+"#, incompatibleFlags: .empty),
+        (pattern: #"foo(?=bar)baz"#, incompatibleFlags: .empty),
+        (pattern: #"a|bc"#, incompatibleFlags: .empty),
+        (pattern: #"abc|def"#, incompatibleFlags: .empty),
+        (pattern: #"a*b|c"#, incompatibleFlags: .empty),
+        (pattern: #"(x)(x)(x)\2"#, incompatibleFlags: .empty),
+        (pattern: #"(?<a>.)\k<a>"#, incompatibleFlags: .empty),
+        (pattern: #"(?:a+)+"#, incompatibleFlags: .empty),
+        (pattern: #"(?=.)"#, incompatibleFlags: .empty),
+        (pattern: #"\p{Changes_When_NFKC_Casefolded}"#, incompatibleFlags: .empty),
+        (pattern: #"a\sc"#, incompatibleFlags: .empty),
+        (pattern: #"a||bc"#, incompatibleFlags: .empty),
+        (pattern: #"a+b"#, incompatibleFlags: .empty),
+        (pattern: #"[\cZ]"#, incompatibleFlags: .empty),
+        (pattern: #"a|b"#, incompatibleFlags: .empty),
+        (pattern: #"\u0034"#, incompatibleFlags: .empty),
+        (pattern: #"\cA"#, incompatibleFlags: .empty),
+        (pattern: #"ab|c"#, incompatibleFlags: .empty),
+        (pattern: #"abc|def|ghi"#, incompatibleFlags: .empty),
+        (pattern: #"(?:ab|cde)"#, incompatibleFlags: .empty),
+        (pattern: #"xyz?"#, incompatibleFlags: .empty),
+        (pattern: #"[a-zA-Z0-9]"#, incompatibleFlags: .empty),
+        (pattern: #"(?:a?)?"#, incompatibleFlags: .empty),
+        (pattern: #"xyz{0,1}"#, incompatibleFlags: .empty),
+        (pattern: #"a\D"#, incompatibleFlags: .empty),
+        (pattern: #"(?!\1(a\1)\1)\1"#, incompatibleFlags: .empty),
+        (pattern: #"a\bc"#, incompatibleFlags: .empty),
+        (pattern: #"\P{gc=Decimal_Number}"#, incompatibleFlags: .empty),
+        (pattern: #"\b"#, incompatibleFlags: .empty),
+        (pattern: #"[x]"#, incompatibleFlags: .empty),
+        (pattern: #"(?:ab){4,7}"#, incompatibleFlags: .empty),
+        (pattern: #"a??"#, incompatibleFlags: .empty),
+        (pattern: #"(?<a>(?<b>(?<c>(?<d>.).).).)"#, incompatibleFlags: .empty),
+        (pattern: #"[\xe2\x81\xa3]"#, incompatibleFlags: .empty),
     ]
 
     public let interestingRegExpQuantifiers = ["*", "+", "?"]
@@ -304,7 +329,9 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
     private var builtinTypes: [String: ILType] = [:]
     private var groups: [String: ObjectGroup] = [:]
 
-    public init(additionalBuiltins: [String: ILType] = [:], additionalObjectGroups: [ObjectGroup] = []) {
+    public init(
+        additionalBuiltins: [String: ILType] = [:], additionalObjectGroups: [ObjectGroup] = []
+    ) {
         super.init(name: "JavaScriptEnvironment")
 
         // Build model of the JavaScript environment
@@ -332,7 +359,10 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
         registerObjectGroup(.jsFinalizationRegistrys)
         registerObjectGroup(.jsArrayBuffers)
         registerObjectGroup(.jsSharedArrayBuffers)
-        for variant in ["Uint8Array", "Int8Array", "Uint16Array", "Int16Array", "Uint32Array", "Int32Array", "Float32Array", "Float64Array", "Uint8ClampedArray", "BigInt64Array", "BigUint64Array"] {
+        for variant in [
+            "Uint8Array", "Int8Array", "Uint16Array", "Int16Array", "Uint32Array", "Int32Array",
+            "Float32Array", "Float64Array", "Uint8ClampedArray", "BigInt64Array", "BigUint64Array",
+        ] {
             registerObjectGroup(.jsTypedArrays(variant))
         }
         registerObjectGroup(.jsDataViews)
@@ -352,14 +382,16 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
         registerObjectGroup(.jsReflectObject)
         registerObjectGroup(.jsArrayBufferConstructor)
         registerObjectGroup(.jsSharedArrayBufferConstructor)
-        for variant in ["Error", "EvalError", "RangeError", "ReferenceError", "SyntaxError", "TypeError", "AggregateError", "URIError", "SuppressedError"] {
+        for variant in [
+            "Error", "EvalError", "RangeError", "ReferenceError", "SyntaxError", "TypeError",
+            "AggregateError", "URIError", "SuppressedError",
+        ] {
             registerObjectGroup(.jsError(variant))
         }
 
         for group in additionalObjectGroups {
             registerObjectGroup(group)
         }
-
 
         // Register builtins that should be available for fuzzing.
         // Here it is easy to selectively disable/enable some APIs for fuzzing by
@@ -373,12 +405,18 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
         registerBuiltin("Symbol", ofType: .jsSymbolConstructor)
         registerBuiltin("BigInt", ofType: .jsBigIntConstructor)
         registerBuiltin("RegExp", ofType: .jsRegExpConstructor)
-        for variant in ["Error", "EvalError", "RangeError", "ReferenceError", "SyntaxError", "TypeError", "AggregateError", "URIError", "SuppressedError"] {
+        for variant in [
+            "Error", "EvalError", "RangeError", "ReferenceError", "SyntaxError", "TypeError",
+            "AggregateError", "URIError", "SuppressedError",
+        ] {
             registerBuiltin(variant, ofType: .jsErrorConstructor(variant))
         }
         registerBuiltin("ArrayBuffer", ofType: .jsArrayBufferConstructor)
         registerBuiltin("SharedArrayBuffer", ofType: .jsSharedArrayBufferConstructor)
-        for variant in ["Uint8Array", "Int8Array", "Uint16Array", "Int16Array", "Uint32Array", "Int32Array", "Float32Array", "Float64Array", "Uint8ClampedArray", "BigInt64Array", "BigUint64Array"] {
+        for variant in [
+            "Uint8Array", "Int8Array", "Uint16Array", "Int16Array", "Uint32Array", "Int32Array",
+            "Float32Array", "Float64Array", "Uint8ClampedArray", "BigInt64Array", "BigUint64Array",
+        ] {
             registerBuiltin(variant, ofType: .jsTypedArrayConstructor(variant))
         }
         registerBuiltin("DataView", ofType: .jsDataViewConstructor)
@@ -418,6 +456,27 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
         builtinProperties.insert("constructor")
         builtinMethods.insert("valueOf")
         builtinMethods.insert("toString")
+
+        // init()メソッド内のregisterObjectGroup呼び出しに追加
+        // 参照行: 331-349
+        registerObjectGroup(
+            ObjectGroup(
+                name: "TypedArray",
+                instanceType: .object(ofGroup: "TypedArray"),
+                properties: [
+                    "buffer": .object(ofGroup: "ArrayBuffer"),
+                    "byteOffset": .integer,
+                    "byteLength": .integer,
+                    "length": .integer,
+                ],
+                methods: [
+                    "at": [.integer] => .number,
+                    "copyWithin": [.integer, .integer, .opt(.integer)] => .undefined,
+                    "fill": [.number, .opt(.integer), .opt(.integer)] => .undefined,
+                    "set": [.object(), .opt(.integer)] => .undefined,
+                    "subarray": [.opt(.integer), .opt(.integer)] => .object(),
+                ]
+            ))
     }
 
     override func initialize() {
@@ -443,14 +502,16 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
         logger.info("Checking constructor availability...")
         // These constructors return types that are well-known instead of .object types.
         let knownExceptions = [
-            "Boolean",        // returns .boolean
-            "Number",         // returns .number
-            "Object",         // returns plain .object
-            "Proxy",          // returns .anything
+            "Boolean",  // returns .boolean
+            "Number",  // returns .number
+            "Object",  // returns plain .object
+            "Proxy",  // returns .anything
         ]
         for builtin in builtins where type(ofBuiltin: builtin).Is(.constructor()) {
             if knownExceptions.contains(builtin) { continue }
-            if !hasGroup(builtin) { logger.warning("Missing group info for constructable \(builtin)")}
+            if !hasGroup(builtin) {
+                logger.warning("Missing group info for constructable \(builtin)")
+            }
             if type(ofBuiltin: builtin).signature == nil {
                 logger.warning("Missing signature for builtin \(builtin)")
             } else {
@@ -495,12 +556,18 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
 
     public func type(ofProperty propertyName: String, on baseType: ILType) -> ILType {
         if let groupName = baseType.group {
+            // TypedArrayの特別処理を追加
+            if groupName.hasSuffix("Array") {
+                if let type = groups["TypedArray"]?.properties[propertyName] {
+                    return type
+                }
+            }
+
             if let group = groups[groupName] {
                 if let type = group.properties[propertyName] {
                     return type
                 }
             } else {
-                // This shouldn't happen, probably forgot to register the object group
                 logger.warning("No type information for object group \(groupName) available")
             }
         }
@@ -533,7 +600,10 @@ public struct ObjectGroup {
     /// The type of instances of this group.
     public let instanceType: ILType
 
-    public init(name: String, instanceType: ILType, properties: [String: ILType], methods: [String: Signature]) {
+    public init(
+        name: String, instanceType: ILType, properties: [String: ILType],
+        methods: [String: Signature]
+    ) {
         self.name = name
         self.instanceType = instanceType
         self.properties = properties
@@ -543,8 +613,14 @@ public struct ObjectGroup {
         // (which would then need some kind of fallback ObjectGroup that is consulted by the
         // type lookup routines if the real group doesn't have the requested information).
         assert(instanceType.group == name, "group name mismatch for group \(name)")
-        assert(instanceType.properties == Set(properties.keys), "inconsistent property information for object group \(name): \(Set(properties.keys).symmetricDifference(instanceType.properties))")
-        assert(instanceType.methods == Set(methods.keys), "inconsistent method information for object group \(name): \(Set(methods.keys).symmetricDifference(instanceType.methods))")
+        assert(
+            instanceType.properties == Set(properties.keys),
+            "inconsistent property information for object group \(name): \(Set(properties.keys).symmetricDifference(instanceType.properties))"
+        )
+        assert(
+            instanceType.methods == Set(methods.keys),
+            "inconsistent method information for object group \(name): \(Set(methods.keys).symmetricDifference(instanceType.methods))"
+        )
     }
 }
 
@@ -564,350 +640,510 @@ public struct ObjectGroup {
 //
 // Note, these must be kept in sync with the ObjectGroups below (in particular the properties and methods). To help with that, the ObjectGroup
 // constructor asserts that the type information is consistent between instance type and the ObjectGroup.
-public extension ILType {
+extension ILType {
     /// Type of a string in JavaScript.
     /// A JS string is both a string and an object on which methods can be called.
-    static let jsString = ILType.string + ILType.iterable + ILType.object(ofGroup: "String", withProperties: ["length"], withMethods: ["charAt", "charCodeAt", "codePointAt", "concat", "includes", "endsWith", "indexOf", "lastIndexOf", "match", "matchAll", "padEnd", "padStart", "normalize", "repeat", "replace", "replaceAll", "search", "slice", "split", "startsWith", "substring", "trim", "trimStart", "trimLeft", "trimEnd", "trimRight" ,"toUpperCase", "toLowerCase", "localeCompare"])
+    public static let jsString =
+        ILType.string + ILType.iterable
+        + ILType.object(
+            ofGroup: "String", withProperties: ["length"],
+            withMethods: [
+                "charAt", "charCodeAt", "codePointAt", "concat", "includes", "endsWith", "indexOf",
+                "lastIndexOf", "match", "matchAll", "padEnd", "padStart", "normalize", "repeat",
+                "replace", "replaceAll", "search", "slice", "split", "startsWith", "substring",
+                "trim", "trimStart", "trimLeft", "trimEnd", "trimRight", "toUpperCase",
+                "toLowerCase", "localeCompare",
+            ])
 
     /// Type of a regular expression in JavaScript.
     /// A JS RegExp is both a RegExp and an object on which methods can be called.
-    static let jsRegExp = ILType.regexp + ILType.object(ofGroup: "RegExp", withProperties: ["flags", "dotAll", "global", "ignoreCase", "multiline", "source", "sticky", "unicode"], withMethods: ["compile", "exec", "test"])
+    public static let jsRegExp =
+        ILType.regexp
+        + ILType.object(
+            ofGroup: "RegExp",
+            withProperties: [
+                "flags", "dotAll", "global", "ignoreCase", "multiline", "source", "sticky",
+                "unicode",
+            ], withMethods: ["compile", "exec", "test"])
 
     /// Type of a JavaScript Symbol.
-    static let jsSymbol = ILType.object(ofGroup: "Symbol", withProperties: ["description"])
+    public static let jsSymbol = ILType.object(ofGroup: "Symbol", withProperties: ["description"])
 
     /// Type of a JavaScript array.
-    static let jsArray = ILType.iterable + ILType.object(ofGroup: "Array", withProperties: ["length"], withMethods: ["at", "concat", "copyWithin", "fill", "find", "findIndex", "findLast", "findLastIndex", "pop", "push", "reverse", "shift", "unshift", "slice", "sort", "splice", "includes", "indexOf", "keys", "entries", "forEach", "filter", "map", "every", "some", "reduce", "reduceRight", "toString", "toLocaleString", "toReversed", "toSorted", "toSpliced", "with", "join", "lastIndexOf", "values", "flat", "flatMap"])
+    public static let jsArray =
+        ILType.iterable
+        + ILType.object(
+            ofGroup: "Array", withProperties: ["length"],
+            withMethods: [
+                "at", "concat", "copyWithin", "fill", "find", "findIndex", "findLast",
+                "findLastIndex", "pop", "push", "reverse", "shift", "unshift", "slice", "sort",
+                "splice", "includes", "indexOf", "keys", "entries", "forEach", "filter", "map",
+                "every", "some", "reduce", "reduceRight", "toString", "toLocaleString",
+                "toReversed", "toSorted", "toSpliced", "with", "join", "lastIndexOf", "values",
+                "flat", "flatMap",
+            ])
 
     /// Type of a function's arguments object.
-    static let jsArguments = ILType.iterable + ILType.object(ofGroup: "Arguments", withProperties: ["length", "callee"])
+    public static let jsArguments =
+        ILType.iterable + ILType.object(ofGroup: "Arguments", withProperties: ["length", "callee"])
 
     /// Type of a JavaScript generator object.
-    static let jsGenerator = ILType.iterable + ILType.object(ofGroup: "Generator", withMethods: ["next", "return", "throw"])
+    public static let jsGenerator =
+        ILType.iterable
+        + ILType.object(ofGroup: "Generator", withMethods: ["next", "return", "throw"])
 
     /// Type of a JavaScript Promise object.
-    static let jsPromise = ILType.object(ofGroup: "Promise", withMethods: ["catch", "finally", "then"])
+    public static let jsPromise = ILType.object(
+        ofGroup: "Promise", withMethods: ["catch", "finally", "then"])
 
     /// Type of a JavaScript Map object.
-    static let jsMap = ILType.iterable + ILType.object(ofGroup: "Map", withProperties: ["size"], withMethods: ["clear", "delete", "entries", "forEach", "get", "has", "keys", "set", "values"])
+    public static let jsMap =
+        ILType.iterable
+        + ILType.object(
+            ofGroup: "Map", withProperties: ["size"],
+            withMethods: [
+                "clear", "delete", "entries", "forEach", "get", "has", "keys", "set", "values",
+            ])
 
     /// Type of a JavaScript WeakMap object.
-    static let jsWeakMap = ILType.object(ofGroup: "WeakMap", withMethods: ["delete", "get", "has", "set"])
+    public static let jsWeakMap = ILType.object(
+        ofGroup: "WeakMap", withMethods: ["delete", "get", "has", "set"])
 
     /// Type of a JavaScript Set object.
-    static let jsSet = ILType.iterable + ILType.object(ofGroup: "Set", withProperties: ["size"], withMethods: ["add", "clear", "delete", "entries", "forEach", "has", "keys", "values"])
+    public static let jsSet =
+        ILType.iterable
+        + ILType.object(
+            ofGroup: "Set", withProperties: ["size"],
+            withMethods: ["add", "clear", "delete", "entries", "forEach", "has", "keys", "values"])
 
     /// Type of a JavaScript WeakSet object.
-    static let jsWeakSet = ILType.object(ofGroup: "WeakSet", withMethods: ["add", "delete", "has"])
+    public static let jsWeakSet = ILType.object(
+        ofGroup: "WeakSet", withMethods: ["add", "delete", "has"])
 
     /// Type of a JavaScript WeakRef object.
-    static let jsWeakRef = ILType.object(ofGroup: "WeakRef", withMethods: ["deref"])
+    public static let jsWeakRef = ILType.object(ofGroup: "WeakRef", withMethods: ["deref"])
 
     /// Type of a JavaScript FinalizationRegistry object.
-    static let jsFinalizationRegistry = ILType.object(ofGroup: "FinalizationRegistry", withMethods: ["register", "unregister"])
+    public static let jsFinalizationRegistry = ILType.object(
+        ofGroup: "FinalizationRegistry", withMethods: ["register", "unregister"])
 
     /// Type of a JavaScript ArrayBuffer object.
-    static let jsArrayBuffer = ILType.object(ofGroup: "ArrayBuffer", withProperties: ["byteLength", "maxByteLength", "resizable"], withMethods: ["resize", "slice", "transfer"])
+    public static let jsArrayBuffer = ILType.object(
+        ofGroup: "ArrayBuffer", withProperties: ["byteLength", "maxByteLength", "resizable"],
+        withMethods: ["resize", "slice", "transfer"])
 
     /// Type of a JavaScript SharedArrayBuffer object.
-    static let jsSharedArrayBuffer = ILType.object(ofGroup: "SharedArrayBuffer", withProperties: ["byteLength", "maxByteLength", "growable"], withMethods: ["grow", "slice"])
+    public static let jsSharedArrayBuffer = ILType.object(
+        ofGroup: "SharedArrayBuffer", withProperties: ["byteLength", "maxByteLength", "growable"],
+        withMethods: ["grow", "slice"])
 
     /// Type of a JavaScript DataView object.
-    static let jsDataView = ILType.object(ofGroup: "DataView", withProperties: ["buffer", "byteLength", "byteOffset"], withMethods: ["getInt8", "getUint8", "getInt16", "getUint16", "getInt32", "getUint32", "getFloat32", "getFloat64", "getBigInt64", "setInt8", "setUint8", "setInt16", "setUint16", "setInt32", "setUint32", "setFloat32", "setFloat64", "setBigInt64"])
+    public static let jsDataView = ILType.object(
+        ofGroup: "DataView", withProperties: ["buffer", "byteLength", "byteOffset"],
+        withMethods: [
+            "getInt8", "getUint8", "getInt16", "getUint16", "getInt32", "getUint32", "getFloat32",
+            "getFloat64", "getBigInt64", "setInt8", "setUint8", "setInt16", "setUint16", "setInt32",
+            "setUint32", "setFloat32", "setFloat64", "setBigInt64",
+        ])
 
     /// Type of a JavaScript TypedArray object of the given variant.
-    static func jsTypedArray(_ variant: String) -> ILType {
-        return .iterable + .object(ofGroup: variant, withProperties: ["buffer", "byteOffset", "byteLength", "length"], withMethods: ["at", "copyWithin", "fill", "find", "findIndex", "findLast", "findLastIndex", "reverse", "slice", "sort", "includes", "indexOf", "keys", "entries", "forEach", "filter", "map", "every", "set", "some", "subarray", "reduce", "reduceRight", "join", "lastIndexOf", "values", "toLocaleString", "toString", "toReversed", "toSorted", "with"])
+    public static func jsTypedArray(_ variant: String) -> ILType {
+        return .iterable
+            + .object(
+                ofGroup: variant, withProperties: ["buffer", "byteOffset", "byteLength", "length"],
+                withMethods: [
+                    "at", "copyWithin", "fill", "find", "findIndex", "findLast", "findLastIndex",
+                    "reverse", "slice", "sort", "includes", "indexOf", "keys", "entries", "forEach",
+                    "filter", "map", "every", "set", "some", "subarray", "reduce", "reduceRight",
+                    "join", "lastIndexOf", "values", "toLocaleString", "toString", "toReversed",
+                    "toSorted", "with",
+                ])
     }
 
     /// Type of a JavaScript function.
     /// A JavaScript function is also constructors. Moreover, it is also an object as it has a number of properties and methods.
-    static func jsFunction(_ signature: Signature = Signature.forUnknownFunction) -> ILType {
-        return .constructor(signature) + .function(signature) + .object(ofGroup: "Function", withProperties: ["prototype", "length", "arguments", "caller", "name"], withMethods: ["apply", "bind", "call"])
+    public static func jsFunction(_ signature: Signature = Signature.forUnknownFunction) -> ILType {
+        return .constructor(signature) + .function(signature)
+            + .object(
+                ofGroup: "Function",
+                withProperties: ["prototype", "length", "arguments", "caller", "name"],
+                withMethods: ["apply", "bind", "call"])
     }
 
     /// Type of the JavaScript Object constructor builtin.
-    static let jsObjectConstructor = .functionAndConstructor([.anything...] => .object()) + .object(ofGroup: "ObjectConstructor", withProperties: ["prototype"], withMethods: ["assign", "fromEntries", "getOwnPropertyDescriptor", "getOwnPropertyDescriptors", "getOwnPropertyNames", "getOwnPropertySymbols", "is", "preventExtensions", "seal", "create", "defineProperties", "defineProperty", "freeze", "getPrototypeOf", "setPrototypeOf", "isExtensible", "isFrozen", "isSealed", "keys", "entries", "values"])
+    public static let jsObjectConstructor =
+        .functionAndConstructor([.anything...] => .object())
+        + .object(
+            ofGroup: "ObjectConstructor", withProperties: ["prototype"],
+            withMethods: [
+                "assign", "fromEntries", "getOwnPropertyDescriptor", "getOwnPropertyDescriptors",
+                "getOwnPropertyNames", "getOwnPropertySymbols", "is", "preventExtensions", "seal",
+                "create", "defineProperties", "defineProperty", "freeze", "getPrototypeOf",
+                "setPrototypeOf", "isExtensible", "isFrozen", "isSealed", "keys", "entries",
+                "values",
+            ])
 
     /// Type of the JavaScript Array constructor builtin.
-    static let jsArrayConstructor = .functionAndConstructor([.integer] => .jsArray) + .object(ofGroup: "ArrayConstructor", withProperties: ["prototype"], withMethods: ["from", "of", "isArray"])
+    public static let jsArrayConstructor =
+        .functionAndConstructor([.integer] => .jsArray)
+        + .object(
+            ofGroup: "ArrayConstructor", withProperties: ["prototype"],
+            withMethods: ["from", "of", "isArray"])
 
     /// Type of the JavaScript Function constructor builtin.
-    static let jsFunctionConstructor = ILType.constructor([.string] => .jsFunction(Signature.forUnknownFunction))
+    public static let jsFunctionConstructor = ILType.constructor(
+        [.string] => .jsFunction(Signature.forUnknownFunction))
 
     /// Type of the JavaScript String constructor builtin.
-    static let jsStringConstructor = ILType.functionAndConstructor([.anything] => .jsString) + .object(ofGroup: "StringConstructor", withProperties: ["prototype"], withMethods: ["fromCharCode", "fromCodePoint", "raw"])
+    public static let jsStringConstructor =
+        ILType.functionAndConstructor([.anything] => .jsString)
+        + .object(
+            ofGroup: "StringConstructor", withProperties: ["prototype"],
+            withMethods: ["fromCharCode", "fromCodePoint", "raw"])
 
     /// Type of the JavaScript Boolean constructor builtin.
-    static let jsBooleanConstructor = ILType.functionAndConstructor([.anything] => .boolean) + .object(ofGroup: "BooleanConstructor", withProperties: ["prototype"], withMethods: [])
+    public static let jsBooleanConstructor =
+        ILType.functionAndConstructor([.anything] => .boolean)
+        + .object(ofGroup: "BooleanConstructor", withProperties: ["prototype"], withMethods: [])
 
     /// Type of the JavaScript Number constructor builtin.
-    static let jsNumberConstructor = ILType.functionAndConstructor([.anything] => .number) + .object(ofGroup: "NumberConstructor", withProperties: ["prototype", "EPSILON", "MAX_SAFE_INTEGER", "MAX_VALUE", "MIN_SAFE_INTEGER", "MIN_VALUE", "NaN", "NEGATIVE_INFINITY", "POSITIVE_INFINITY"], withMethods: ["isNaN", "isFinite", "isInteger", "isSafeInteger"])
+    public static let jsNumberConstructor =
+        ILType.functionAndConstructor([.anything] => .number)
+        + .object(
+            ofGroup: "NumberConstructor",
+            withProperties: [
+                "prototype", "EPSILON", "MAX_SAFE_INTEGER", "MAX_VALUE", "MIN_SAFE_INTEGER",
+                "MIN_VALUE", "NaN", "NEGATIVE_INFINITY", "POSITIVE_INFINITY",
+            ], withMethods: ["isNaN", "isFinite", "isInteger", "isSafeInteger"])
 
     /// Type of the JavaScript Symbol constructor builtin.
-    static let jsSymbolConstructor = ILType.function([.string] => .jsSymbol) + .object(ofGroup: "SymbolConstructor", withProperties: JavaScriptEnvironment.wellKnownSymbols, withMethods: ["for", "keyFor"])
+    public static let jsSymbolConstructor =
+        ILType.function([.string] => .jsSymbol)
+        + .object(
+            ofGroup: "SymbolConstructor", withProperties: JavaScriptEnvironment.wellKnownSymbols,
+            withMethods: ["for", "keyFor"])
 
     /// Type of the JavaScript BigInt constructor builtin.
-    static let jsBigIntConstructor = ILType.function([.number] => .bigint) + .object(ofGroup: "BigIntConstructor", withProperties: ["prototype"], withMethods: ["asIntN", "asUintN"])
+    public static let jsBigIntConstructor =
+        ILType.function([.number] => .bigint)
+        + .object(
+            ofGroup: "BigIntConstructor", withProperties: ["prototype"],
+            withMethods: ["asIntN", "asUintN"])
 
     /// Type of the JavaScript RegExp constructor builtin.
-    static let jsRegExpConstructor = ILType.jsFunction([.string] => .jsRegExp)
+    public static let jsRegExpConstructor = ILType.jsFunction([.string] => .jsRegExp)
 
     /// Type of a JavaScript Error object of the given variant.
-    static func jsError(_ variant: String) -> ILType {
-       return .object(ofGroup: variant, withProperties: ["message", "name", "cause", "stack"], withMethods: ["toString"])
+    public static func jsError(_ variant: String) -> ILType {
+        return .object(
+            ofGroup: variant, withProperties: ["message", "name", "cause", "stack"],
+            withMethods: ["toString"])
     }
 
     /// Type of the JavaScript Error constructor builtin
-    static func jsErrorConstructor(_ variant: String) -> ILType {
+    public static func jsErrorConstructor(_ variant: String) -> ILType {
         return .functionAndConstructor([.opt(.string)] => .jsError(variant))
     }
 
     /// Type of the JavaScript ArrayBuffer constructor builtin.
-    static let jsArrayBufferConstructor = ILType.constructor([.integer, .opt(.object())] => .jsArrayBuffer) + .object(ofGroup: "ArrayBufferConstructor", withProperties: ["prototype"], withMethods: ["isView"])
+    public static let jsArrayBufferConstructor =
+        ILType.constructor([.integer, .opt(.object())] => .jsArrayBuffer)
+        + .object(
+            ofGroup: "ArrayBufferConstructor", withProperties: ["prototype"],
+            withMethods: ["isView"])
 
     /// Type of the JavaScript SharedArrayBuffer constructor builtin.
-    static let jsSharedArrayBufferConstructor = ILType.constructor([.integer, .opt(.object())] => .jsSharedArrayBuffer) + .object(ofGroup: "SharedArrayBufferConstructor", withProperties: ["prototype"], withMethods: [])
+    public static let jsSharedArrayBufferConstructor =
+        ILType.constructor([.integer, .opt(.object())] => .jsSharedArrayBuffer)
+        + .object(
+            ofGroup: "SharedArrayBufferConstructor", withProperties: ["prototype"], withMethods: [])
 
     /// Type of a JavaScript TypedArray constructor builtin.
-    static func jsTypedArrayConstructor(_ variant: String) -> ILType {
-		// TODO Also allow SharedArrayBuffers for first argument
-        return .constructor([.oneof(.integer, .object(ofGroup: "ArrayBuffer")), .opt(.integer), .opt(.integer)] => .jsTypedArray(variant))
+    public static func jsTypedArrayConstructor(_ variant: String) -> ILType {
+        // TODO Also allow SharedArrayBuffers for first argument
+        return .constructor(
+            [.oneof(.integer, .object(ofGroup: "ArrayBuffer")), .opt(.integer), .opt(.integer)]
+                => .jsTypedArray(variant))
     }
 
     /// Type of the JavaScript DataView constructor builtin. (TODO Also allow SharedArrayBuffers for first argument)
-    static let jsDataViewConstructor = ILType.constructor([.object(ofGroup: "ArrayBuffer"), .opt(.integer), .opt(.integer)] => .jsDataView)
+    public static let jsDataViewConstructor = ILType.constructor(
+        [.object(ofGroup: "ArrayBuffer"), .opt(.integer), .opt(.integer)] => .jsDataView)
 
     /// Type of the JavaScript Promise constructor builtin.
-    static let jsPromiseConstructor = ILType.constructor([.function()] => .jsPromise) + .object(ofGroup: "PromiseConstructor", withProperties: ["prototype"], withMethods: ["resolve", "reject", "all", "any", "race", "allSettled"])
+    public static let jsPromiseConstructor =
+        ILType.constructor([.function()] => .jsPromise)
+        + .object(
+            ofGroup: "PromiseConstructor", withProperties: ["prototype"],
+            withMethods: ["resolve", "reject", "all", "any", "race", "allSettled"])
 
     /// Type of the JavaScript Proxy constructor builtin.
-    static let jsProxyConstructor = ILType.constructor([.object(), .object()] => .anything)
+    public static let jsProxyConstructor = ILType.constructor([.object(), .object()] => .anything)
 
     /// Type of the JavaScript Map constructor builtin.
-    static let jsMapConstructor = ILType.constructor([.object()] => .jsMap)
+    public static let jsMapConstructor = ILType.constructor([.object()] => .jsMap)
 
     /// Type of the JavaScript WeakMap constructor builtin.
-    static let jsWeakMapConstructor = ILType.constructor([.object()] => .jsWeakMap)
+    public static let jsWeakMapConstructor = ILType.constructor([.object()] => .jsWeakMap)
 
     /// Type of the JavaScript Set constructor builtin.
-    static let jsSetConstructor = ILType.constructor([.object()] => .jsSet)
+    public static let jsSetConstructor = ILType.constructor([.object()] => .jsSet)
 
     /// Type of the JavaScript WeakSet constructor builtin.
-    static let jsWeakSetConstructor = ILType.constructor([.object()] => .jsWeakSet)
+    public static let jsWeakSetConstructor = ILType.constructor([.object()] => .jsWeakSet)
 
     /// Type of the JavaScript WeakRef constructor builtin.
-    static let jsWeakRefConstructor = ILType.constructor([.object()] => .jsWeakRef)
+    public static let jsWeakRefConstructor = ILType.constructor([.object()] => .jsWeakRef)
 
     /// Type of the JavaScript FinalizationRegistry constructor builtin.
-    static let jsFinalizationRegistryConstructor = ILType.constructor([.function()] => .jsFinalizationRegistry)
+    public static let jsFinalizationRegistryConstructor = ILType.constructor(
+        [.function()] => .jsFinalizationRegistry)
 
     /// Type of the JavaScript Math constructor builtin.
-    static let jsMathObject = ILType.object(ofGroup: "Math", withProperties: ["E", "PI"], withMethods: ["abs", "acos", "acosh", "asin", "asinh", "atan", "atanh", "atan2", "ceil", "cbrt", "expm1", "clz32", "cos", "cosh", "exp", "floor", "fround", "hypot", "imul", "log", "log1p", "log2", "log10", "max", "min", "pow", "random", "round", "sign", "sin", "sinh", "sqrt", "tan", "tanh", "trunc"])
+    public static let jsMathObject = ILType.object(
+        ofGroup: "Math", withProperties: ["E", "PI"],
+        withMethods: [
+            "abs", "acos", "acosh", "asin", "asinh", "atan", "atanh", "atan2", "ceil", "cbrt",
+            "expm1", "clz32", "cos", "cosh", "exp", "floor", "fround", "hypot", "imul", "log",
+            "log1p", "log2", "log10", "max", "min", "pow", "random", "round", "sign", "sin", "sinh",
+            "sqrt", "tan", "tanh", "trunc",
+        ])
 
     /// Type of the JavaScript Date object
-    static let jsDate = ILType.object(ofGroup: "Date", withMethods: ["toISOString", "toDateString", "toTimeString", "toLocaleString", "getTime", "getFullYear", "getUTCFullYear", "getMonth", "getUTCMonth", "getDate", "getUTCDate", "getDay", "getUTCDay", "getHours", "getUTCHours", "getMinutes", "getUTCMinutes", "getSeconds", "getUTCSeconds", "getMilliseconds", "getUTCMilliseconds", "getTimezoneOffset", "getYear", "now", "setTime", "setMilliseconds", "setUTCMilliseconds", "setSeconds", "setUTCSeconds", "setMinutes", "setUTCMinutes", "setHours", "setUTCHours", "setDate", "setUTCDate", "setMonth", "setUTCMonth", "setFullYear", "setUTCFullYear", "setYear", "toJSON", "toUTCString", "toGMTString"])
+    public static let jsDate = ILType.object(
+        ofGroup: "Date",
+        withMethods: [
+            "toISOString", "toDateString", "toTimeString", "toLocaleString", "getTime",
+            "getFullYear", "getUTCFullYear", "getMonth", "getUTCMonth", "getDate", "getUTCDate",
+            "getDay", "getUTCDay", "getHours", "getUTCHours", "getMinutes", "getUTCMinutes",
+            "getSeconds", "getUTCSeconds", "getMilliseconds", "getUTCMilliseconds",
+            "getTimezoneOffset", "getYear", "now", "setTime", "setMilliseconds",
+            "setUTCMilliseconds", "setSeconds", "setUTCSeconds", "setMinutes", "setUTCMinutes",
+            "setHours", "setUTCHours", "setDate", "setUTCDate", "setMonth", "setUTCMonth",
+            "setFullYear", "setUTCFullYear", "setYear", "toJSON", "toUTCString", "toGMTString",
+        ])
 
     /// Type of the JavaScript Date constructor builtin
-    static let jsDateConstructor = ILType.functionAndConstructor([.opt(.string | .number)] => .jsDate) + .object(ofGroup: "DateConstructor", withProperties: ["prototype"], withMethods: ["UTC", "now", "parse"])
+    public static let jsDateConstructor =
+        ILType.functionAndConstructor([.opt(.string | .number)] => .jsDate)
+        + .object(
+            ofGroup: "DateConstructor", withProperties: ["prototype"],
+            withMethods: ["UTC", "now", "parse"])
 
     /// Type of the JavaScript JSON object builtin.
-    static let jsJSONObject = ILType.object(ofGroup: "JSON", withMethods: ["parse", "stringify"])
+    public static let jsJSONObject = ILType.object(
+        ofGroup: "JSON", withMethods: ["parse", "stringify"])
 
     /// Type of the JavaScript Reflect object builtin.
-    static let jsReflectObject = ILType.object(ofGroup: "Reflect", withMethods: ["apply", "construct", "defineProperty", "deleteProperty", "get", "getOwnPropertyDescriptor", "getPrototypeOf", "has", "isExtensible", "ownKeys", "preventExtensions", "set", "setPrototypeOf"])
+    public static let jsReflectObject = ILType.object(
+        ofGroup: "Reflect",
+        withMethods: [
+            "apply", "construct", "defineProperty", "deleteProperty", "get",
+            "getOwnPropertyDescriptor", "getPrototypeOf", "has", "isExtensible", "ownKeys",
+            "preventExtensions", "set", "setPrototypeOf",
+        ])
 
     /// Type of the JavaScript isNaN builtin function.
-    static let jsIsNaNFunction = ILType.function([.anything] => .boolean)
+    public static let jsIsNaNFunction = ILType.function([.anything] => .boolean)
 
     /// Type of the JavaScript isFinite builtin function.
-    static let jsIsFiniteFunction = ILType.function([.anything] => .boolean)
+    public static let jsIsFiniteFunction = ILType.function([.anything] => .boolean)
 
     /// Type of the JavaScript escape builtin function.
-    static let jsEscapeFunction = ILType.function([.anything] => .jsString)
+    public static let jsEscapeFunction = ILType.function([.anything] => .jsString)
 
     /// Type of the JavaScript unescape builtin function.
-    static let jsUnescapeFunction = ILType.function([.anything] => .jsString)
+    public static let jsUnescapeFunction = ILType.function([.anything] => .jsString)
 
     /// Type of the JavaScript decodeURI builtin function.
-    static let jsDecodeURIFunction = ILType.function([.anything] => .jsString)
+    public static let jsDecodeURIFunction = ILType.function([.anything] => .jsString)
 
     /// Type of the JavaScript decodeURIComponent builtin function.
-    static let jsDecodeURIComponentFunction = ILType.function([.anything] => .jsString)
+    public static let jsDecodeURIComponentFunction = ILType.function([.anything] => .jsString)
 
     /// Type of the JavaScript encodeURI builtin function.
-    static let jsEncodeURIFunction = ILType.function([.anything] => .jsString)
+    public static let jsEncodeURIFunction = ILType.function([.anything] => .jsString)
 
     /// Type of the JavaScript encodeURIComponent builtin function.
-    static let jsEncodeURIComponentFunction = ILType.function([.anything] => .jsString)
+    public static let jsEncodeURIComponentFunction = ILType.function([.anything] => .jsString)
 
     /// Type of the JavaScript eval builtin function.
-    static let jsEvalFunction = ILType.function([.string] => .anything)
+    public static let jsEvalFunction = ILType.function([.string] => .anything)
 
     /// Type of the JavaScript parseInt builtin function.
-    static let jsParseIntFunction = ILType.function([.string] => .integer)
+    public static let jsParseIntFunction = ILType.function([.string] => .integer)
 
     /// Type of the JavaScript parseFloat builtin function.
-    static let jsParseFloatFunction = ILType.function([.string] => .float)
+    public static let jsParseFloatFunction = ILType.function([.string] => .float)
 
     /// Type of the JavaScript undefined value.
-    static let jsUndefined = ILType.undefined
+    public static let jsUndefined = ILType.undefined
 
     /// Type of the JavaScript NaN value.
-    static let jsNaN = ILType.float
+    public static let jsNaN = ILType.float
 
     /// Type of the JavaScript Infinity value.
-    static let jsInfinity = ILType.float
+    public static let jsInfinity = ILType.float
+
+    // 既存のstatic letの定義の後に追加
+    public static let jsTypedArrayBase =
+        .object(ofGroup: "TypedArray")
+        + .object(withProperties: [
+            "buffer", "byteOffset", "byteLength", "length",
+        ])
+        + .object(withMethods: [
+            "at", "copyWithin", "fill", "set", "subarray",
+        ])
 }
 
 // Type information for the object groups that we use to model the JavaScript runtime environment.
 // The general rules here are:
 //  * "output" type information (properties and return values) should be as precise as possible
 //  * "input" type information (function parameters) should be as broad as possible
-public extension ObjectGroup {
+extension ObjectGroup {
     /// Object group modelling JavaScript strings
-    static let jsStrings = ObjectGroup(
+    public static let jsStrings = ObjectGroup(
         name: "String",
         instanceType: .jsString,
         properties: [
-            "length"      : .integer,
+            "length": .integer
         ],
         methods: [
-            "charAt"      : [.integer] => .jsString,
-            "charCodeAt"  : [.integer] => .integer,
-            "codePointAt" : [.integer] => .integer,
-            "concat"      : [.anything...] => .jsString,
-            "includes"    : [.anything, .opt(.integer)] => .boolean,
-            "endsWith"    : [.string, .opt(.integer)] => .boolean,
-            "indexOf"     : [.anything, .opt(.integer)] => .integer,
-            "lastIndexOf" : [.anything, .opt(.integer)] => .integer,
-            "match"       : [.regexp] => .jsString,
-            "matchAll"    : [.regexp] => .jsString,
-            "normalize"   : [] => .jsString,  // the first parameter must be a specific string value, so we have a CodeGenerator for that instead
-            "padEnd"      : [.integer, .opt(.string)] => .jsString,
-            "padStart"    : [.integer, .opt(.string)] => .jsString,
-            "repeat"      : [.integer] => .jsString,
-            "replace"     : [.oneof(.string, .regexp), .string] => .jsString,
-            "replaceAll"  : [.string, .string] => .jsString,
-            "search"      : [.regexp] => .integer,
-            "slice"       : [.integer, .opt(.integer)] => .jsString,
-            "split"       : [.opt(.string), .opt(.integer)] => .jsArray,
-            "startsWith"  : [.string, .opt(.integer)] => .boolean,
-            "substring"   : [.integer, .opt(.integer)] => .jsString,
-            "trim"        : [] => .undefined,
-            "trimStart"   : [] => .jsString,
-            "trimLeft"    : [] => .jsString,
-            "trimEnd"     : [] => .jsString,
-            "trimRight"   : [] => .jsString,
-            "toLowerCase" : [] => .jsString,
-            "toUpperCase" : [] => .jsString,
-            "localeCompare" : [.string, .opt(.string), .opt(.object())] => .jsString,
-            //"toLocaleLowerCase" : [.opt(.string...] => .jsString,
-            //"toLocaleUpperCase" : [.opt(.string...] => .jsString,
-            // ...
+            "charAt": [.integer] => .jsString,
+            "charCodeAt": [.integer] => .integer,
+            "codePointAt": [.integer] => .integer,
+            "concat": [.anything...] => .jsString,
+            "includes": [.anything, .opt(.integer)] => .boolean,
+            "endsWith": [.string, .opt(.integer)] => .boolean,
+            "indexOf": [.anything, .opt(.integer)] => .integer,
+            "lastIndexOf": [.anything, .opt(.integer)] => .integer,
+            "match": [.regexp] => .jsString,
+            "matchAll": [.regexp] => .jsString,
+            "normalize": [] => .jsString,  // the first parameter must be a specific string value, so we have a CodeGenerator for that instead
+            "padEnd": [.integer, .opt(.string)] => .jsString,
+            "padStart": [.integer, .opt(.string)] => .jsString,
+            "repeat": [.integer] => .jsString,
+            "replace": [.oneof(.string, .regexp), .string] => .jsString,
+            "replaceAll": [.string, .string] => .jsString,
+            "search": [.regexp] => .integer,
+            "slice": [.integer, .opt(.integer)] => .jsString,
+            "split": [.opt(.string), .opt(.integer)] => .jsArray,
+            "startsWith": [.string, .opt(.integer)] => .boolean,
+            "substring": [.integer, .opt(.integer)] => .jsString,
+            "trim": [] => .undefined,
+            "trimStart": [] => .jsString,
+            "trimLeft": [] => .jsString,
+            "trimEnd": [] => .jsString,
+            "trimRight": [] => .jsString,
+            "toLowerCase": [] => .jsString,
+            "toUpperCase": [] => .jsString,
+            "localeCompare": [.string, .opt(.string), .opt(.object())] => .jsString,
+                //"toLocaleLowerCase" : [.opt(.string...] => .jsString,
+                //"toLocaleUpperCase" : [.opt(.string...] => .jsString,
+                // ...
         ]
     )
 
     /// Object group modelling JavaScript regular expressions.
-    static let jsRegExps = ObjectGroup(
+    public static let jsRegExps = ObjectGroup(
         name: "RegExp",
         instanceType: .jsRegExp,
         properties: [
-            "flags"      : .string,
-            "dotAll"     : .boolean,
-            "global"     : .boolean,
-            "ignoreCase" : .boolean,
-            "multiline"  : .boolean,
-            "source"     : .string,
-            "sticky"     : .boolean,
-            "unicode"    : .boolean,
+            "flags": .string,
+            "dotAll": .boolean,
+            "global": .boolean,
+            "ignoreCase": .boolean,
+            "multiline": .boolean,
+            "source": .string,
+            "sticky": .boolean,
+            "unicode": .boolean,
         ],
         methods: [
-            "compile"    : [.string] => .jsRegExp,
-            "exec"       : [.string] => .jsArray,
-            "test"       : [.string] => .boolean,
+            "compile": [.string] => .jsRegExp,
+            "exec": [.string] => .jsArray,
+            "test": [.string] => .boolean,
         ]
     )
 
     /// Object group modelling JavaScript arrays
-    static let jsArrays = ObjectGroup(
+    public static let jsArrays = ObjectGroup(
         name: "Array",
         instanceType: .jsArray,
         properties: [
-            "length"      : .integer,
+            "length": .integer
         ],
         methods: [
-            "at"             : [.integer] => .anything,
-            "copyWithin"     : [.integer, .integer, .opt(.integer)] => .jsArray,
-            "entries"        : [] => .jsArray,
-            "every"          : [.function(), .opt(.object())] => .boolean,
-            "fill"           : [.anything, .opt(.integer), .opt(.integer)] => .undefined,
-            "find"           : [.function(), .opt(.object())] => .anything,
-            "findIndex"      : [.function(), .opt(.object())] => .integer,
-            "findLast"       : [.function(), .opt(.object())] => .anything,
-            "findLastIndex"  : [.function(), .opt(.object())] => .integer,
-            "forEach"        : [.function(), .opt(.object())] => .undefined,
-            "includes"       : [.anything, .opt(.integer)] => .boolean,
-            "indexOf"        : [.anything, .opt(.integer)] => .integer,
-            "join"           : [.string] => .jsString,
-            "keys"           : [] => .object(),          // returns an array iterator
-            "lastIndexOf"    : [.anything, .opt(.integer)] => .integer,
-            "reduce"         : [.function(), .opt(.anything)] => .anything,
-            "reduceRight"    : [.function(), .opt(.anything)] => .anything,
-            "reverse"        : [] => .undefined,
-            "some"           : [.function(), .opt(.anything)] => .boolean,
-            "sort"           : [.function()] => .undefined,
-            "values"         : [] => .object(),
-            "pop"            : [] => .anything,
-            "push"           : [.anything...] => .integer,
-            "shift"          : [] => .anything,
-            "splice"         : [.integer, .opt(.integer), .anything...] => .jsArray,
-            "unshift"        : [.anything...] => .integer,
-            "concat"         : [.anything...] => .jsArray,
-            "filter"         : [.function(), .opt(.object())] => .jsArray,
-            "map"            : [.function(), .opt(.object())] => .jsArray,
-            "slice"          : [.opt(.integer), .opt(.integer)] => .jsArray,
-            "flat"           : [.opt(.integer)] => .jsArray,
-            "flatMap"        : [.function(), .opt(.anything)] => .jsArray,
-            "toString"       : [] => .jsString,
-            "toLocaleString" : [.opt(.string), .opt(.object())] => .jsString,
-            "toReversed"     : [] => .jsArray,
-            "toSorted"       : [.opt(.function())] => .jsArray,
-            "toSpliced"      : [.integer, .opt(.integer), .anything...] => .jsArray,
-            "with"           : [.integer, .anything] => .jsArray,
+            "at": [.integer] => .anything,
+            "copyWithin": [.integer, .integer, .opt(.integer)] => .jsArray,
+            "entries": [] => .jsArray,
+            "every": [.function(), .opt(.object())] => .boolean,
+            "fill": [.anything, .opt(.integer), .opt(.integer)] => .undefined,
+            "find": [.function(), .opt(.object())] => .anything,
+            "findIndex": [.function(), .opt(.object())] => .integer,
+            "findLast": [.function(), .opt(.object())] => .anything,
+            "findLastIndex": [.function(), .opt(.object())] => .integer,
+            "forEach": [.function(), .opt(.object())] => .undefined,
+            "includes": [.anything, .opt(.integer)] => .boolean,
+            "indexOf": [.anything, .opt(.integer)] => .integer,
+            "join": [.string] => .jsString,
+            "keys": [] => .object(),  // returns an array iterator
+            "lastIndexOf": [.anything, .opt(.integer)] => .integer,
+            "reduce": [.function(), .opt(.anything)] => .anything,
+            "reduceRight": [.function(), .opt(.anything)] => .anything,
+            "reverse": [] => .undefined,
+            "some": [.function(), .opt(.anything)] => .boolean,
+            "sort": [.function()] => .undefined,
+            "values": [] => .object(),
+            "pop": [] => .anything,
+            "push": [.anything...] => .integer,
+            "shift": [] => .anything,
+            "splice": [.integer, .opt(.integer), .anything...] => .jsArray,
+            "unshift": [.anything...] => .integer,
+            "concat": [.anything...] => .jsArray,
+            "filter": [.function(), .opt(.object())] => .jsArray,
+            "map": [.function(), .opt(.object())] => .jsArray,
+            "slice": [.opt(.integer), .opt(.integer)] => .jsArray,
+            "flat": [.opt(.integer)] => .jsArray,
+            "flatMap": [.function(), .opt(.anything)] => .jsArray,
+            "toString": [] => .jsString,
+            "toLocaleString": [.opt(.string), .opt(.object())] => .jsString,
+            "toReversed": [] => .jsArray,
+            "toSorted": [.opt(.function())] => .jsArray,
+            "toSpliced": [.integer, .opt(.integer), .anything...] => .jsArray,
+            "with": [.integer, .anything] => .jsArray,
         ]
     )
 
     /// ObjectGroup modelling JavaScript functions
-    static let jsFunctions = ObjectGroup(
+    public static let jsFunctions = ObjectGroup(
         name: "Function",
         instanceType: .jsFunction(),
         properties: [
-            "prototype"   : .object(),
-            "length"      : .integer,
-            "arguments"   : .jsArray,
-            "caller"      : .jsFunction(),
-            "name"        : .jsString,
+            "prototype": .object(),
+            "length": .integer,
+            "arguments": .jsArray,
+            "caller": .jsFunction(),
+            "name": .jsString,
         ],
         methods: [
-            "apply" : [.object(), .object()] => .anything,
-            "call"  : [.object(), .anything...] => .anything,
-            "bind"  : [.object(), .anything...] => .anything,
+            "apply": [.object(), .object()] => .anything,
+            "call": [.object(), .anything...] => .anything,
+            "bind": [.object(), .anything...] => .anything,
         ]
     )
 
     /// ObjectGroup modelling JavaScript Symbols
-    static let jsSymbols = ObjectGroup(
+    public static let jsSymbols = ObjectGroup(
         name: "Symbol",
         instanceType: .jsSymbol,
         properties: [
-            "description" : .jsString,
+            "description": .jsString
         ],
         methods: [:]
     )
 
     /// Object group modelling JavaScript arguments objects.
-    static let jsArguments = ObjectGroup(
+    public static let jsArguments = ObjectGroup(
         name: "Arguments",
         instanceType: .jsArguments,
         properties: [
@@ -917,556 +1153,584 @@ public extension ObjectGroup {
         methods: [:]
     )
 
-    static let jsGenerators = ObjectGroup(
+    public static let jsGenerators = ObjectGroup(
         name: "Generator",
         instanceType: .jsGenerator,
         properties: [:],
         methods: [
-            "next"   : [.opt(.anything)] => .object(withProperties: ["done", "value"]),
-            "return" : [.opt(.anything)] => .object(withProperties: ["done", "value"]),
-            "throw"  : [.opt(.anything)] => .object(withProperties: ["done", "value"])
+            "next": [.opt(.anything)] => .object(withProperties: ["done", "value"]),
+            "return": [.opt(.anything)] => .object(withProperties: ["done", "value"]),
+            "throw": [.opt(.anything)] => .object(withProperties: ["done", "value"]),
         ]
     )
 
     /// Object group modelling JavaScript promises.
-    static let jsPromises = ObjectGroup(
+    public static let jsPromises = ObjectGroup(
         name: "Promise",
         instanceType: .jsPromise,
         properties: [:],
         methods: [
-            "catch"   : [.function()] => .jsPromise,
-            "then"    : [.function()] => .jsPromise,
-            "finally" : [.function()] => .jsPromise,
+            "catch": [.function()] => .jsPromise,
+            "then": [.function()] => .jsPromise,
+            "finally": [.function()] => .jsPromise,
         ]
     )
 
     /// ObjectGroup modelling JavaScript Map objects
-    static let jsMaps = ObjectGroup(
+    public static let jsMaps = ObjectGroup(
         name: "Map",
         instanceType: .jsMap,
         properties: [
-            "size"      : .integer
+            "size": .integer
         ],
         methods: [
-            "clear"   : [] => .undefined,
-            "delete"  : [.anything] => .boolean,
-            "entries" : [] => .object(),
-            "forEach" : [.function(), .opt(.object())] => .undefined,
-            "get"     : [.anything] => .anything,
-            "has"     : [.anything] => .boolean,
-            "keys"    : [] => .object(),
-            "set"     : [.anything, .anything] => .jsMap,
-            "values"  : [] => .object(),
+            "clear": [] => .undefined,
+            "delete": [.anything] => .boolean,
+            "entries": [] => .object(),
+            "forEach": [.function(), .opt(.object())] => .undefined,
+            "get": [.anything] => .anything,
+            "has": [.anything] => .boolean,
+            "keys": [] => .object(),
+            "set": [.anything, .anything] => .jsMap,
+            "values": [] => .object(),
         ]
     )
 
     /// ObjectGroup modelling JavaScript WeakMap objects
-    static let jsWeakMaps = ObjectGroup(
+    public static let jsWeakMaps = ObjectGroup(
         name: "WeakMap",
         instanceType: .jsWeakMap,
         properties: [:],
         methods: [
-            "delete" : [.anything] => .boolean,
-            "get"    : [.anything] => .anything,
-            "has"    : [.anything] => .boolean,
-            "set"    : [.anything, .anything] => .jsWeakMap,
+            "delete": [.anything] => .boolean,
+            "get": [.anything] => .anything,
+            "has": [.anything] => .boolean,
+            "set": [.anything, .anything] => .jsWeakMap,
         ]
     )
 
     /// ObjectGroup modelling JavaScript Set objects
-    static let jsSets = ObjectGroup(
+    public static let jsSets = ObjectGroup(
         name: "Set",
         instanceType: .jsSet,
         properties: [
-            "size"      : .integer
+            "size": .integer
         ],
         methods: [
-            "add"     : [.anything] => .jsSet,
-            "clear"   : [] => .undefined,
-            "delete"  : [.anything] => .boolean,
-            "entries" : [] => .object(),
-            "forEach" : [.function(), .opt(.object())] => .undefined,
-            "has"     : [.anything] => .boolean,
-            "keys"    : [] => .object(),
-            "values"  : [] => .object(),
+            "add": [.anything] => .jsSet,
+            "clear": [] => .undefined,
+            "delete": [.anything] => .boolean,
+            "entries": [] => .object(),
+            "forEach": [.function(), .opt(.object())] => .undefined,
+            "has": [.anything] => .boolean,
+            "keys": [] => .object(),
+            "values": [] => .object(),
         ]
     )
 
     /// ObjectGroup modelling JavaScript WeakSet objects
-    static let jsWeakSets = ObjectGroup(
+    public static let jsWeakSets = ObjectGroup(
         name: "WeakSet",
         instanceType: .jsWeakSet,
         properties: [:],
         methods: [
-            "add"    : [.anything] => .jsWeakSet,
-            "delete" : [.anything] => .boolean,
-            "has"    : [.anything] => .boolean,
+            "add": [.anything] => .jsWeakSet,
+            "delete": [.anything] => .boolean,
+            "has": [.anything] => .boolean,
         ]
     )
 
     /// ObjectGroup modelling JavaScript WeakRef objects
-    static let jsWeakRefs = ObjectGroup(
+    public static let jsWeakRefs = ObjectGroup(
         name: "WeakRef",
         instanceType: .jsWeakRef,
         properties: [:],
         methods: [
-            "deref"   : [] => .object(),
+            "deref": [] => .object()
         ]
     )
 
     /// ObjectGroup modelling JavaScript FinalizationRegistry objects
-    static let jsFinalizationRegistrys = ObjectGroup(
+    public static let jsFinalizationRegistrys = ObjectGroup(
         name: "FinalizationRegistry",
         instanceType: .jsFinalizationRegistry,
         properties: [:],
         methods: [
-            "register"   : [.object(), .anything, .opt(.object())] => .object(),
-            "unregister" : [.anything] => .undefined,
+            "register": [.object(), .anything, .opt(.object())] => .object(),
+            "unregister": [.anything] => .undefined,
         ]
     )
 
     /// ObjectGroup modelling JavaScript ArrayBuffer objects
-    static let jsArrayBuffers = ObjectGroup(
+    public static let jsArrayBuffers = ObjectGroup(
         name: "ArrayBuffer",
         instanceType: .jsArrayBuffer,
         properties: [
-            "byteLength"    : .integer,
-            "maxByteLength" : .integer,
-            "resizable"     : .boolean
+            "byteLength": .integer,
+            "maxByteLength": .integer,
+            "resizable": .boolean,
         ],
         methods: [
-            "resize"    : [.integer] => .undefined,
-            "slice"     : [.integer, .opt(.integer)] => .jsArrayBuffer,
-            "transfer"  : [] => .jsArrayBuffer,
+            "resize": [.integer] => .undefined,
+            "slice": [.integer, .opt(.integer)] => .jsArrayBuffer,
+            "transfer": [] => .jsArrayBuffer,
         ]
     )
 
     /// ObjectGroup modelling JavaScript SharedArrayBuffer objects
-    static let jsSharedArrayBuffers = ObjectGroup(
+    public static let jsSharedArrayBuffers = ObjectGroup(
         name: "SharedArrayBuffer",
         instanceType: .jsSharedArrayBuffer,
         properties: [
-            "byteLength"    : .integer,
-            "maxByteLength" : .integer,
-            "growable"      : .boolean,
+            "byteLength": .integer,
+            "maxByteLength": .integer,
+            "growable": .boolean,
         ],
         methods: [
-            "grow"      : [.number] => .undefined,
-            "slice"     : [.integer, .opt(.integer)] => .jsSharedArrayBuffer,
+            "grow": [.number] => .undefined,
+            "slice": [.integer, .opt(.integer)] => .jsSharedArrayBuffer,
         ]
     )
 
     /// ObjectGroup modelling JavaScript TypedArray objects
-    static func jsTypedArrays(_ variant: String) -> ObjectGroup {
+    public static func jsTypedArrays(_ variant: String) -> ObjectGroup {
         return ObjectGroup(
             name: variant,
             instanceType: .jsTypedArray(variant),
             properties: [
-                "buffer"      : .jsArrayBuffer,
-                "byteLength"  : .integer,
-                "byteOffset"  : .integer,
-                "length"      : .integer
+                "buffer": .jsArrayBuffer,
+                "byteLength": .integer,
+                "byteOffset": .integer,
+                "length": .integer,
             ],
             methods: [
-                "at"          : [.integer] => .anything,
-                "copyWithin"  : [.integer, .integer, .opt(.integer)] => .undefined,
-                "entries"     : [] => .jsArray,
-                "every"       : [.function(), .opt(.object())] => .boolean,
-                "fill"        : [.anything, .opt(.integer), .opt(.integer)] => .undefined,
-                "find"        : [.function(), .opt(.object())] => .anything,
-                "findIndex"   : [.function(), .opt(.object())] => .integer,
-                "findLast"    : [.function(), .opt(.object())] => .anything,
-                "findLastIndex"  : [.function(), .opt(.object())] => .integer,
-                "forEach"     : [.function(), .opt(.object())] => .undefined,
-                "includes"    : [.anything, .opt(.integer)] => .boolean,
-                "indexOf"     : [.anything, .opt(.integer)] => .integer,
-                "join"        : [.string] => .jsString,
-                "keys"        : [] => .object(),          // returns an array iterator
-                "lastIndexOf" : [.anything, .opt(.integer)] => .integer,
-                "reduce"      : [.function(), .opt(.anything)] => .anything,
-                "reduceRight" : [.function(), .opt(.anything)] => .anything,
-                "reverse"     : [] => .undefined,
-                "set"         : [.object(), .opt(.integer)] => .undefined,
-                "some"        : [.function(), .opt(.anything)] => .boolean,
-                "sort"        : [.function()] => .undefined,
-                "values"      : [] => .object(),
-                "filter"      : [.function(), .opt(.object())] => .jsTypedArray(variant),
-                "map"         : [.function(), .opt(.object())] => .jsTypedArray(variant),
-                "slice"       : [.opt(.integer), .opt(.integer)] => .jsTypedArray(variant),
-                "subarray"    : [.opt(.integer), .opt(.integer)] => .jsTypedArray(variant),
-                "toString"       : [] => .jsString,
-                "toLocaleString" : [.opt(.string), .opt(.object())] => .jsString,
-                "toReversed"     : [] => .jsTypedArray(variant),
-                "toSorted"       : [.opt(.function())] => .jsTypedArray(variant),
-                "with"           : [.integer, .anything] => .jsTypedArray(variant),
+                "at": [.integer] => .anything,
+                "copyWithin": [.integer, .integer, .opt(.integer)] => .undefined,
+                "entries": [] => .jsArray,
+                "every": [.function(), .opt(.object())] => .boolean,
+                "fill": [.anything, .opt(.integer), .opt(.integer)] => .undefined,
+                "find": [.function(), .opt(.object())] => .anything,
+                "findIndex": [.function(), .opt(.object())] => .integer,
+                "findLast": [.function(), .opt(.object())] => .anything,
+                "findLastIndex": [.function(), .opt(.object())] => .integer,
+                "forEach": [.function(), .opt(.object())] => .undefined,
+                "includes": [.anything, .opt(.integer)] => .boolean,
+                "indexOf": [.anything, .opt(.integer)] => .integer,
+                "join": [.string] => .jsString,
+                "keys": [] => .object(),  // returns an array iterator
+                "lastIndexOf": [.anything, .opt(.integer)] => .integer,
+                "reduce": [.function(), .opt(.anything)] => .anything,
+                "reduceRight": [.function(), .opt(.anything)] => .anything,
+                "reverse": [] => .undefined,
+                "set": [.object(), .opt(.integer)] => .undefined,
+                "some": [.function(), .opt(.anything)] => .boolean,
+                "sort": [.function()] => .undefined,
+                "values": [] => .object(),
+                "filter": [.function(), .opt(.object())] => .jsTypedArray(variant),
+                "map": [.function(), .opt(.object())] => .jsTypedArray(variant),
+                "slice": [.opt(.integer), .opt(.integer)] => .jsTypedArray(variant),
+                "subarray": [.opt(.integer), .opt(.integer)] => .jsTypedArray(variant),
+                "toString": [] => .jsString,
+                "toLocaleString": [.opt(.string), .opt(.object())] => .jsString,
+                "toReversed": [] => .jsTypedArray(variant),
+                "toSorted": [.opt(.function())] => .jsTypedArray(variant),
+                "with": [.integer, .anything] => .jsTypedArray(variant),
             ]
         )
     }
 
     /// ObjectGroup modelling JavaScript DataView objects
-    static let jsDataViews = ObjectGroup(
+    public static let jsDataViews = ObjectGroup(
         name: "DataView",
         instanceType: .jsDataView,
         properties: [
-            "buffer"     : .jsArrayBuffer,
-            "byteLength" : .integer,
-            "byteOffset" : .integer
+            "buffer": .jsArrayBuffer,
+            "byteLength": .integer,
+            "byteOffset": .integer,
         ],
         methods: [
-            "getInt8"    : [.integer] => .integer,
-            "getUint8"   : [.integer] => .integer,
-            "getInt16"   : [.integer] => .integer,
-            "getUint16"  : [.integer] => .integer,
-            "getInt32"   : [.integer] => .integer,
-            "getUint32"  : [.integer] => .integer,
-            "getFloat32" : [.integer] => .float,
-            "getFloat64" : [.integer] => .float,
+            "getInt8": [.integer] => .integer,
+            "getUint8": [.integer] => .integer,
+            "getInt16": [.integer] => .integer,
+            "getUint16": [.integer] => .integer,
+            "getInt32": [.integer] => .integer,
+            "getUint32": [.integer] => .integer,
+            "getFloat32": [.integer] => .float,
+            "getFloat64": [.integer] => .float,
             "getBigInt64": [.integer] => .bigint,
-            "setInt8"    : [.integer, .integer] => .undefined,
-            "setUint8"   : [.integer, .integer] => .undefined,
-            "setInt16"   : [.integer, .integer] => .undefined,
-            "setUint16"  : [.integer, .integer] => .undefined,
-            "setInt32"   : [.integer, .integer] => .undefined,
-            "setUint32"  : [.integer, .integer] => .undefined,
-            "setFloat32" : [.integer, .float] => .undefined,
-            "setFloat64" : [.integer, .float] => .undefined,
+            "setInt8": [.integer, .integer] => .undefined,
+            "setUint8": [.integer, .integer] => .undefined,
+            "setInt16": [.integer, .integer] => .undefined,
+            "setUint16": [.integer, .integer] => .undefined,
+            "setInt32": [.integer, .integer] => .undefined,
+            "setUint32": [.integer, .integer] => .undefined,
+            "setFloat32": [.integer, .float] => .undefined,
+            "setFloat64": [.integer, .float] => .undefined,
             "setBigInt64": [.integer, .bigint] => .undefined,
         ]
     )
 
     /// ObjectGroup modelling the JavaScript Promise constructor builtin
-    static let jsPromiseConstructor = ObjectGroup(
+    public static let jsPromiseConstructor = ObjectGroup(
         name: "PromiseConstructor",
         instanceType: .jsPromiseConstructor,
         properties: [
-            "prototype" : .object()
+            "prototype": .object()
         ],
         methods: [
-            "resolve"    : [.anything] => .jsPromise,
-            "reject"     : [.anything] => .jsPromise,
-            "all"        : [.jsPromise...] => .jsPromise,
-            "any"        : [.jsPromise...] => .jsPromise,
-            "race"       : [.jsPromise...] => .jsPromise,
-            "allSettled" : [.jsPromise...] => .jsPromise,
+            "resolve": [.anything] => .jsPromise,
+            "reject": [.anything] => .jsPromise,
+            "all": [.jsPromise...] => .jsPromise,
+            "any": [.jsPromise...] => .jsPromise,
+            "race": [.jsPromise...] => .jsPromise,
+            "allSettled": [.jsPromise...] => .jsPromise,
         ]
     )
 
     /// ObjectGroup modelling JavaScript Date objects
-    static let jsDate = ObjectGroup(
+    public static let jsDate = ObjectGroup(
         name: "Date",
         instanceType: .jsDate,
         properties: [:],
         methods: [
-            "toISOString"           : [] => .jsString,
-            "toDateString"          : [] => .jsString,
-            "toTimeString"          : [] => .jsString,
-            "toLocaleString"        : [] => .jsString,
+            "toISOString": [] => .jsString,
+            "toDateString": [] => .jsString,
+            "toTimeString": [] => .jsString,
+            "toLocaleString": [] => .jsString,
             //"toLocaleDateString"    : [.localeObject] => .jsString,
             //"toLocaleTimeString"    : [.localeObject] => .jsString,
-            "getTime"               : [] => .number,
-            "getFullYear"           : [] => .number,
-            "getUTCFullYear"        : [] => .number,
-            "getMonth"              : [] => .number,
-            "getUTCMonth"           : [] => .number,
-            "getDate"               : [] => .number,
-            "getUTCDate"            : [] => .number,
-            "getDay"                : [] => .number,
-            "getUTCDay"             : [] => .number,
-            "getHours"              : [] => .number,
-            "getUTCHours"           : [] => .number,
-            "getMinutes"            : [] => .number,
-            "getUTCMinutes"         : [] => .number,
-            "getSeconds"            : [] => .number,
-            "getUTCSeconds"         : [] => .number,
-            "getMilliseconds"       : [] => .number,
-            "getUTCMilliseconds"    : [] => .number,
-            "getTimezoneOffset"     : [] => .number,
-            "getYear"               : [] => .number,
-            "now"                   : [] => .number,
-            "setTime"               : [.number] => .jsDate,
-            "setMilliseconds"       : [.number] => .jsDate,
-            "setUTCMilliseconds"    : [.number] => .jsDate,
-            "setSeconds"            : [.number] => .jsDate,
-            "setUTCSeconds"         : [.number, .opt(.number)] => .jsDate,
-            "setMinutes"            : [.number, .opt(.number), .opt(.number)] => .jsDate,
-            "setUTCMinutes"         : [.number, .opt(.number), .opt(.number)] => .jsDate,
-            "setHours"              : [.number, .opt(.number), .opt(.number)] => .jsDate,
-            "setUTCHours"           : [.number, .opt(.number), .opt(.number)] => .jsDate,
-            "setDate"               : [.number] => .jsDate,
-            "setUTCDate"            : [.number] => .jsDate,
-            "setMonth"              : [.number] => .jsDate,
-            "setUTCMonth"           : [.number] => .jsDate,
-            "setFullYear"           : [.number, .opt(.number), .opt(.number)] => .jsDate,
-            "setUTCFullYear"        : [.number, .opt(.number), .opt(.number)] => .jsDate,
-            "setYear"               : [.number] => .jsDate,
-            "toJSON"                : [] => .jsString,
-            "toUTCString"           : [] => .jsString,
-            "toGMTString"           : [] => .jsString,
+            "getTime": [] => .number,
+            "getFullYear": [] => .number,
+            "getUTCFullYear": [] => .number,
+            "getMonth": [] => .number,
+            "getUTCMonth": [] => .number,
+            "getDate": [] => .number,
+            "getUTCDate": [] => .number,
+            "getDay": [] => .number,
+            "getUTCDay": [] => .number,
+            "getHours": [] => .number,
+            "getUTCHours": [] => .number,
+            "getMinutes": [] => .number,
+            "getUTCMinutes": [] => .number,
+            "getSeconds": [] => .number,
+            "getUTCSeconds": [] => .number,
+            "getMilliseconds": [] => .number,
+            "getUTCMilliseconds": [] => .number,
+            "getTimezoneOffset": [] => .number,
+            "getYear": [] => .number,
+            "now": [] => .number,
+            "setTime": [.number] => .jsDate,
+            "setMilliseconds": [.number] => .jsDate,
+            "setUTCMilliseconds": [.number] => .jsDate,
+            "setSeconds": [.number] => .jsDate,
+            "setUTCSeconds": [.number, .opt(.number)] => .jsDate,
+            "setMinutes": [.number, .opt(.number), .opt(.number)] => .jsDate,
+            "setUTCMinutes": [.number, .opt(.number), .opt(.number)] => .jsDate,
+            "setHours": [.number, .opt(.number), .opt(.number)] => .jsDate,
+            "setUTCHours": [.number, .opt(.number), .opt(.number)] => .jsDate,
+            "setDate": [.number] => .jsDate,
+            "setUTCDate": [.number] => .jsDate,
+            "setMonth": [.number] => .jsDate,
+            "setUTCMonth": [.number] => .jsDate,
+            "setFullYear": [.number, .opt(.number), .opt(.number)] => .jsDate,
+            "setUTCFullYear": [.number, .opt(.number), .opt(.number)] => .jsDate,
+            "setYear": [.number] => .jsDate,
+            "toJSON": [] => .jsString,
+            "toUTCString": [] => .jsString,
+            "toGMTString": [] => .jsString,
         ]
     )
 
     /// ObjectGroup modelling the JavaScript Date constructor
-    static let jsDateConstructor = ObjectGroup(
+    public static let jsDateConstructor = ObjectGroup(
         name: "DateConstructor",
         instanceType: .jsDateConstructor,
         properties: [
-            "prototype" : .object()
+            "prototype": .object()
         ],
         methods: [
-            "UTC"   : [.number, .opt(.number), .opt(.number), .opt(.number), .opt(.number), .opt(.number), .opt(.number)] => .jsDate,
-            "now"   : [] => .jsDate,
-            "parse" : [.string] => .jsDate,
+            "UTC": [
+                .number, .opt(.number), .opt(.number), .opt(.number), .opt(.number), .opt(.number),
+                .opt(.number),
+            ] => .jsDate,
+            "now": [] => .jsDate,
+            "parse": [.string] => .jsDate,
         ]
     )
 
     /// ObjectGroup modelling the JavaScript Object constructor builtin
-    static let jsObjectConstructor = ObjectGroup(
+    public static let jsObjectConstructor = ObjectGroup(
         name: "ObjectConstructor",
         instanceType: .jsObjectConstructor,
         properties: [
-            "prototype" : .object(),        // TODO
+            "prototype": .object()  // TODO
         ],
         methods: [
-            "assign"                    : [.object(), .object()] => .undefined,
-            "create"                    : [.object(), .object()] => .object(),
-            "defineProperty"            : [.object(), .string, .oneof(.object(withProperties: ["configurable", "writable", "enumerable", "value"]), .object(withMethods: ["get", "set"]))] => .undefined,
-            "defineProperties"          : [.object(), .object()] => .undefined,
-            "entries"                   : [.object()] => .object(),
-            "freeze"                    : [.object()] => .undefined,
-            "fromEntries"               : [.object()] => .object(),
-            "getOwnPropertyDescriptor"  : [.object(), .string] => .object(withProperties: ["configurable", "writable", "enumerable", "value"]),
-            "getOwnPropertyDescriptors" : [.object()] => .object(),
-            "getOwnPropertyNames"       : [.object()] => .jsArray,
-            "getOwnPropertySymbols"     : [.object()] => .jsArray,
-            "getPrototypeOf"            : [.object()] => .object(),
-            "is"                        : [.object(), .object()] => .boolean,
-            "isExtensible"              : [.object()] => .boolean,
-            "isFrozen"                  : [.object()] => .boolean,
-            "isSealed"                  : [.object()] => .boolean,
-            "keys"                      : [.object()] => .jsArray,
-            "preventExtensions"         : [.object()] => .object(),
-            "seal"                      : [.object()] => .object(),
-            "setPrototypeOf"            : [.object(), .object()] => .object(),
-            "values"                    : [.object()] => .jsArray,
+            "assign": [.object(), .object()] => .undefined,
+            "create": [.object(), .object()] => .object(),
+            "defineProperty": [
+                .object(), .string,
+                .oneof(
+                    .object(withProperties: ["configurable", "writable", "enumerable", "value"]),
+                    .object(withMethods: ["get", "set"])),
+            ] => .undefined,
+            "defineProperties": [.object(), .object()] => .undefined,
+            "entries": [.object()] => .object(),
+            "freeze": [.object()] => .undefined,
+            "fromEntries": [.object()] => .object(),
+            "getOwnPropertyDescriptor": [.object(), .string]
+                => .object(withProperties: ["configurable", "writable", "enumerable", "value"]),
+            "getOwnPropertyDescriptors": [.object()] => .object(),
+            "getOwnPropertyNames": [.object()] => .jsArray,
+            "getOwnPropertySymbols": [.object()] => .jsArray,
+            "getPrototypeOf": [.object()] => .object(),
+            "is": [.object(), .object()] => .boolean,
+            "isExtensible": [.object()] => .boolean,
+            "isFrozen": [.object()] => .boolean,
+            "isSealed": [.object()] => .boolean,
+            "keys": [.object()] => .jsArray,
+            "preventExtensions": [.object()] => .object(),
+            "seal": [.object()] => .object(),
+            "setPrototypeOf": [.object(), .object()] => .object(),
+            "values": [.object()] => .jsArray,
         ]
     )
 
     /// ObjectGroup modelling the JavaScript Array constructor builtin
-    static let jsArrayConstructor = ObjectGroup(
+    public static let jsArrayConstructor = ObjectGroup(
         name: "ArrayConstructor",
         instanceType: .jsArrayConstructor,
         properties: [
-            "prototype" : .object()
+            "prototype": .object()
         ],
         methods: [
-            "from"    : [.anything, .opt(.function()), .opt(.object())] => .jsArray,
-            "isArray" : [.anything] => .boolean,
-            "of"      : [.anything...] => .jsArray,
+            "from": [.anything, .opt(.function()), .opt(.object())] => .jsArray,
+            "isArray": [.anything] => .boolean,
+            "of": [.anything...] => .jsArray,
         ]
     )
 
-    static let jsArrayBufferConstructor = ObjectGroup(
+    public static let jsArrayBufferConstructor = ObjectGroup(
         name: "ArrayBufferConstructor",
         instanceType: .jsArrayBufferConstructor,
         properties: [
-            "prototype" : .object()
+            "prototype": .object()
         ],
         methods: [
-            "isView" : [.anything] => .boolean
+            "isView": [.anything] => .boolean
         ]
     )
 
-    static let jsSharedArrayBufferConstructor = ObjectGroup(
+    public static let jsSharedArrayBufferConstructor = ObjectGroup(
         name: "SharedArrayBufferConstructor",
         instanceType: .jsSharedArrayBufferConstructor,
         properties: [
-            "prototype" : .object()
+            "prototype": .object()
         ],
         methods: [:]
     )
 
     /// Object group modelling the JavaScript String constructor builtin
-    static let jsStringConstructor = ObjectGroup(
+    public static let jsStringConstructor = ObjectGroup(
         name: "StringConstructor",
         instanceType: .jsStringConstructor,
         properties: [
-            "prototype" : .object()
+            "prototype": .object()
         ],
         methods: [
-            "fromCharCode"  : [.anything...] => .jsString,
-            "fromCodePoint" : [.anything...] => .jsString,
-            "raw"           : [.anything...] => .jsString
+            "fromCharCode": [.anything...] => .jsString,
+            "fromCodePoint": [.anything...] => .jsString,
+            "raw": [.anything...] => .jsString,
         ]
     )
 
     /// Object group modelling the JavaScript Symbol constructor builtin
-    static let jsSymbolConstructor = ObjectGroup(
+    public static let jsSymbolConstructor = ObjectGroup(
         name: "SymbolConstructor",
         instanceType: .jsSymbolConstructor,
         properties: [
-            "iterator"           : .jsSymbol,
-            "asyncIterator"      : .jsSymbol,
-            "match"              : .jsSymbol,
-            "matchAll"           : .jsSymbol,
-            "replace"            : .jsSymbol,
-            "search"             : .jsSymbol,
-            "split"              : .jsSymbol,
-            "hasInstance"        : .jsSymbol,
-            "isConcatSpreadable" : .jsSymbol,
-            "unscopables"        : .jsSymbol,
-            "species"            : .jsSymbol,
-            "toPrimitive"        : .jsSymbol,
-            "toStringTag"        : .jsSymbol,
-            "dispose"            : .jsSymbol,
-            "asyncDispose"       : .jsSymbol
+            "iterator": .jsSymbol,
+            "asyncIterator": .jsSymbol,
+            "match": .jsSymbol,
+            "matchAll": .jsSymbol,
+            "replace": .jsSymbol,
+            "search": .jsSymbol,
+            "split": .jsSymbol,
+            "hasInstance": .jsSymbol,
+            "isConcatSpreadable": .jsSymbol,
+            "unscopables": .jsSymbol,
+            "species": .jsSymbol,
+            "toPrimitive": .jsSymbol,
+            "toStringTag": .jsSymbol,
+            "dispose": .jsSymbol,
+            "asyncDispose": .jsSymbol,
         ],
         methods: [
-            "for"    : [.string] => .jsSymbol,
-            "keyFor" : [.object(ofGroup: "Symbol")] => .jsString,
+            "for": [.string] => .jsSymbol,
+            "keyFor": [.object(ofGroup: "Symbol")] => .jsString,
         ]
     )
 
     /// Object group modelling the JavaScript BigInt constructor builtin
-    static let jsBigIntConstructor = ObjectGroup(
+    public static let jsBigIntConstructor = ObjectGroup(
         name: "BigIntConstructor",
         instanceType: .jsBigIntConstructor,
         properties: [
-            "prototype" : .object()
+            "prototype": .object()
         ],
         methods: [
-            "asIntN"  : [.number, .bigint] => .bigint,
-            "asUintN" : [.number, .bigint] => .bigint,
+            "asIntN": [.number, .bigint] => .bigint,
+            "asUintN": [.number, .bigint] => .bigint,
         ]
     )
 
     /// Object group modelling the JavaScript Boolean constructor builtin
-    static let jsBooleanConstructor = ObjectGroup(
+    public static let jsBooleanConstructor = ObjectGroup(
         name: "BooleanConstructor",
         instanceType: .jsBooleanConstructor,
         properties: [
-            "prototype" : .object()
+            "prototype": .object()
         ],
         methods: [:]
     )
 
     /// Object group modelling the JavaScript Number constructor builtin
-    static let jsNumberConstructor = ObjectGroup(
+    public static let jsNumberConstructor = ObjectGroup(
         name: "NumberConstructor",
         instanceType: .jsNumberConstructor,
         properties: [
-            "prototype"         : .object(),
+            "prototype": .object(),
             // TODO: should there be a .jsNumber type?
-            "EPSILON"           : .number,
-            "MAX_SAFE_INTEGER"  : .number,
-            "MAX_VALUE"         : .number,
-            "MIN_SAFE_INTEGER"  : .number,
-            "MIN_VALUE"         : .number,
-            "NaN"               : .number,
-            "NEGATIVE_INFINITY" : .number,
-            "POSITIVE_INFINITY" : .number,
+            "EPSILON": .number,
+            "MAX_SAFE_INTEGER": .number,
+            "MAX_VALUE": .number,
+            "MIN_SAFE_INTEGER": .number,
+            "MIN_VALUE": .number,
+            "NaN": .number,
+            "NEGATIVE_INFINITY": .number,
+            "POSITIVE_INFINITY": .number,
         ],
         methods: [
-            "isNaN"         : [.anything] => .boolean,
-            "isFinite"      : [.anything] => .boolean,
-            "isInteger"     : [.anything] => .boolean,
-            "isSafeInteger" : [.anything] => .boolean,
+            "isNaN": [.anything] => .boolean,
+            "isFinite": [.anything] => .boolean,
+            "isInteger": [.anything] => .boolean,
+            "isSafeInteger": [.anything] => .boolean,
         ]
     )
 
     /// Object group modelling the JavaScript Math builtin
-    static let jsMathObject = ObjectGroup(
+    public static let jsMathObject = ObjectGroup(
         name: "Math",
         instanceType: .jsMathObject,
         properties: [
-            "E"  : .number,
-            "PI" : .number
+            "E": .number,
+            "PI": .number,
         ],
         methods: [
-            "abs"    : [.anything] => .number,
-            "acos"   : [.anything] => .number,
-            "acosh"  : [.anything] => .number,
-            "asin"   : [.anything] => .number,
-            "asinh"  : [.anything] => .number,
-            "atan"   : [.anything] => .number,
-            "atanh"  : [.anything] => .number,
-            "atan2"  : [.anything, .anything] => .number,
-            "cbrt"   : [.anything] => .number,
-            "ceil"   : [.anything] => .number,
-            "clz32"  : [.anything] => .number,
-            "cos"    : [.anything] => .number,
-            "cosh"   : [.anything] => .number,
-            "exp"    : [.anything] => .number,
-            "expm1"  : [.anything] => .number,
-            "floor"  : [.anything] => .number,
-            "fround" : [.anything] => .number,
-            "hypot"  : [.anything...] => .number,
-            "imul"   : [.anything, .anything] => .integer,
-            "log"    : [.anything] => .number,
-            "log1p"  : [.anything] => .number,
-            "log10"  : [.anything] => .number,
-            "log2"   : [.anything] => .number,
-            "max"    : [.anything...] => .anything,
-            "min"    : [.anything...] => .anything,
-            "pow"    : [.anything, .anything] => .number,
-            "random" : [] => .number,
-            "round"  : [.anything] => .number,
-            "sign"   : [.anything] => .number,
-            "sin"    : [.anything] => .number,
-            "sinh"   : [.anything] => .number,
-            "sqrt"   : [.anything] => .number,
-            "tan"    : [.anything] => .number,
-            "tanh"   : [.anything] => .number,
-            "trunc"  : [.anything] => .number,
+            "abs": [.anything] => .number,
+            "acos": [.anything] => .number,
+            "acosh": [.anything] => .number,
+            "asin": [.anything] => .number,
+            "asinh": [.anything] => .number,
+            "atan": [.anything] => .number,
+            "atanh": [.anything] => .number,
+            "atan2": [.anything, .anything] => .number,
+            "cbrt": [.anything] => .number,
+            "ceil": [.anything] => .number,
+            "clz32": [.anything] => .number,
+            "cos": [.anything] => .number,
+            "cosh": [.anything] => .number,
+            "exp": [.anything] => .number,
+            "expm1": [.anything] => .number,
+            "floor": [.anything] => .number,
+            "fround": [.anything] => .number,
+            "hypot": [.anything...] => .number,
+            "imul": [.anything, .anything] => .integer,
+            "log": [.anything] => .number,
+            "log1p": [.anything] => .number,
+            "log10": [.anything] => .number,
+            "log2": [.anything] => .number,
+            "max": [.anything...] => .anything,
+            "min": [.anything...] => .anything,
+            "pow": [.anything, .anything] => .number,
+            "random": [] => .number,
+            "round": [.anything] => .number,
+            "sign": [.anything] => .number,
+            "sin": [.anything] => .number,
+            "sinh": [.anything] => .number,
+            "sqrt": [.anything] => .number,
+            "tan": [.anything] => .number,
+            "tanh": [.anything] => .number,
+            "trunc": [.anything] => .number,
         ]
     )
 
     /// ObjectGroup modelling the JavaScript JSON builtin
-    static let jsJSONObject = ObjectGroup(
+    public static let jsJSONObject = ObjectGroup(
         name: "JSON",
         instanceType: .jsJSONObject,
         properties: [:],
         methods: [
-            "parse"     : [.string, .opt(.function())] => .anything,
-            "stringify" : [.anything, .opt(.function()), .opt(.number | .string)] => .jsString,
+            "parse": [.string, .opt(.function())] => .anything,
+            "stringify": [.anything, .opt(.function()), .opt(.number | .string)] => .jsString,
         ]
     )
 
     /// ObjectGroup modelling the JavaScript Reflect builtin
-    static let jsReflectObject = ObjectGroup(
+    public static let jsReflectObject = ObjectGroup(
         name: "Reflect",
         instanceType: .jsReflectObject,
         properties: [:],
         methods: [
-            "apply"                    : [.function(), .anything, .object()] => .anything,
-            "construct"                : [.constructor(), .object(), .opt(.object())] => .anything,
-            "defineProperty"           : [.object(), .string, .object()] => .boolean,
-            "deleteProperty"           : [.object(), .string] => .boolean,
-            "get"                      : [.object(), .string, .opt(.object())] => .anything,
-            "getOwnPropertyDescriptor" : [.object(), .string] => .anything,
-            "getPrototypeOf"           : [.anything] => .anything,
-            "has"                      : [.object(), .string] => .boolean,
-            "isExtensible"             : [.anything] => .boolean,
-            "ownKeys"                  : [.anything] => .jsArray,
-            "preventExtensions"        : [.object()] => .boolean,
-            "set"                      : [.object(), .string, .anything, .opt(.object())] => .boolean,
-            "setPrototypeOf"           : [.object(), .object()] => .boolean,
+            "apply": [.function(), .anything, .object()] => .anything,
+            "construct": [.constructor(), .object(), .opt(.object())] => .anything,
+            "defineProperty": [.object(), .string, .object()] => .boolean,
+            "deleteProperty": [.object(), .string] => .boolean,
+            "get": [.object(), .string, .opt(.object())] => .anything,
+            "getOwnPropertyDescriptor": [.object(), .string] => .anything,
+            "getPrototypeOf": [.anything] => .anything,
+            "has": [.object(), .string] => .boolean,
+            "isExtensible": [.anything] => .boolean,
+            "ownKeys": [.anything] => .jsArray,
+            "preventExtensions": [.object()] => .boolean,
+            "set": [.object(), .string, .anything, .opt(.object())] => .boolean,
+            "setPrototypeOf": [.object(), .object()] => .boolean,
         ]
     )
 
     /// ObjectGroup modelling JavaScript Error objects
-    static func jsError(_ variant: String) -> ObjectGroup {
+    public static func jsError(_ variant: String) -> ObjectGroup {
         return ObjectGroup(
             name: variant,
             instanceType: .jsError(variant),
             properties: [
-                "message"     : .jsString,
-                "name"        : .jsString,
-                "cause"       : .anything,
-                "stack"       : .jsString,
+                "message": .jsString,
+                "name": .jsString,
+                "cause": .anything,
+                "stack": .jsString,
             ],
             methods: [
-                "toString" : [] => .jsString,
+                "toString": [] => .jsString
             ]
         )
     }
+
+    /// ObjectGroup modelling JavaScript TypedArray objects
+    public static let jsTypedArrays = ObjectGroup(
+        name: "TypedArray",
+        instanceType: .object(ofGroup: "TypedArray"),
+        properties: [
+            "buffer": .object(ofGroup: "ArrayBuffer"),
+            "byteOffset": .integer,
+            "byteLength": .integer,
+            "length": .integer,
+        ],
+        methods: [
+            "at": [.integer] => .number,
+            "copyWithin": [.integer, .integer, .opt(.integer)] => .undefined,
+            "fill": [.number, .opt(.integer), .opt(.integer)] => .undefined,
+            "set": [.object(), .opt(.integer)] => .undefined,
+            "subarray": [.opt(.integer), .opt(.integer)] => .object(),
+        ]
+    )
 }
