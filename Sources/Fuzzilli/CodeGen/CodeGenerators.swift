@@ -1909,8 +1909,9 @@ public let CodeGenerators: [CodeGenerator] = [
     // メモリ操作のテストを追加
     CodeGenerator("WasmMemoryOperationsGenerator") { b in
         b.buildTryCatchFinally(tryBody: {
-            // WebAssembly.Memoryインスタンスを作成
-            let memory = b.construct(b.loadBuiltin("WebAssembly.Memory"), withArgs: [
+            // WebAssembly.Memoryを使用してメモリを作成
+            let WebAssembly = b.loadBuiltin("WebAssembly")
+            let memory = b.construct(b.getProperty("Memory", of: WebAssembly), withArgs: [
                 b.createObject(with: [
                     "initial": b.loadInt(1),
                     "maximum": b.loadInt(10)
@@ -1937,14 +1938,31 @@ public let CodeGenerators: [CodeGenerator] = [
 
     CodeGenerator("WasmTableGenerator") { b in
         b.buildTryCatchFinally(tryBody: {
-            // テーブルを作成
-            let table = b.loadBuiltin("Table")
-            b.construct(table, withArgs: [
-                b.createObject(with: [
-                    "initial": b.loadInt(1),
-                    "element": b.loadString("anyfunc")
-                ])
+            // WebAssembly名前空間から直接Tableを取得
+            let WebAssembly = b.loadBuiltin("WebAssembly")
+            let tableDesc = b.createObject(with: [
+                "initial": b.loadInt(1),
+                "element": b.loadString("anyfunc")
             ])
+            
+            // WebAssembly.Tableを使用
+            let table = b.construct(b.getProperty("Table", of: WebAssembly), withArgs: [tableDesc])
+            
+            // テーブルを操作
+            withEqualProbability({
+                // テーブルを拡張
+                b.callMethod("grow", on: table, withArgs: [b.loadInt(1)])
+            }, {
+                // テーブルにアクセス
+                b.callMethod("get", on: table, withArgs: [b.loadInt(0)])
+            }, {
+                // テーブルに値を設定
+                let func_ = b.buildPlainFunction(with: .parameters(n: 0)) { _ in 
+                    b.loadInt(42)
+                }
+                b.callMethod("set", on: table, withArgs: [b.loadInt(0), func_])
+            })
+            
         }, catchBody: { error in
             b.loadUndefined()
         })
