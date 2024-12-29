@@ -1865,21 +1865,68 @@ public let CodeGenerators: [CodeGenerator] = [
     },
 
     CodeGenerator("WasmGenerator") { b in
-        // Uint8Arrayを生成
-        let wasmBinary = b.loadBuiltin("createWasmBinary")
-        
-        // インポートオブジェクトを生成（オプション）
-        var imports: [Variable] = []
-        if probability(0.5) {
-            let numImports = Int.random(in: 1...3)
-            for _ in 0..<numImports {
-                let importObj = b.createObject(with: ["memory": b.loadBuiltin("Memory")])
-                imports.append(importObj)
-            }
-        }
-        
-        // WASMモジュールをインスタンス化
-        b.instantiateWasm(wasmBinary, imports: imports)
+        // 必ず実行されるように、try-catchブロックを追加
+        b.buildTryCatchFinally(tryBody: {
+            // Wasmバイナリを生成
+            let wasmBinary = b.loadBuiltin("createWasmBinary")
+            
+            // インポートオブジェクトを生成
+            let importObj = b.createObject(with: [
+                "env": b.createObject(with: [
+                    "memory": b.loadBuiltin("Memory")
+                ])
+            ])
+            
+            // WASMモジュールをインスタンス化して実行
+            let instance = b.instantiateWasm(wasmBinary, imports: [importObj])
+            
+            // エクスポートされた関数を呼び出し
+            let exports = b.getProperty("exports", of: instance)
+            // エクスポートされた関数を呼び出す
+            b.callMethod("main", on: exports, withArgs: [], guard: true)
+            
+        }, catchBody: { error in
+            // エラーが発生した場合でも処理を継続
+            b.loadUndefined()
+        })
+    },
+
+    // Wasmに関連する新しいジェネレータを追加
+    CodeGenerator("WasmMemoryGenerator") { b in
+        b.buildTryCatchFinally(tryBody: {
+            // メモリを作成
+            let memory = b.loadBuiltin("Memory") 
+            let memoryInstance = b.construct(memory, withArgs: [
+                b.createObject(with: [
+                    "initial": b.loadInt(1),
+                    "maximum": b.loadInt(10)
+                ])
+            ])
+            
+            // メモリにデータを書き込み
+            let view = b.construct(b.loadBuiltin("Int32Array"), withArgs: [memoryInstance])
+            b.callMethod("set", on: view, withArgs: [
+                b.createIntArray(with: [1, 2, 3, 4])
+            ])
+            
+        }, catchBody: { error in
+            b.loadUndefined()
+        })
+    },
+
+    CodeGenerator("WasmTableGenerator") { b in
+        b.buildTryCatchFinally(tryBody: {
+            // テーブルを作成
+            let table = b.loadBuiltin("Table")
+            b.construct(table, withArgs: [
+                b.createObject(with: [
+                    "initial": b.loadInt(1),
+                    "element": b.loadString("anyfunc")
+                ])
+            ])
+        }, catchBody: { error in
+            b.loadUndefined()
+        })
     }
 ]
 
