@@ -1865,49 +1865,72 @@ public let CodeGenerators: [CodeGenerator] = [
     },
 
     CodeGenerator("WasmGenerator") { b in
-        // 必ず実行されるように、try-catchブロックを追加
+        // WebAssemblyのテストケースを必ず実行するために、try-catchで囲む
         b.buildTryCatchFinally(tryBody: {
-            // Wasmバイナリを生成
-            let wasmBinary = b.loadBuiltin("createWasmBinary")
-            
-            // インポートオブジェクトを生成
-            let importObj = b.createObject(with: [
-                "env": b.createObject(with: [
-                    "memory": b.loadBuiltin("Memory")
-                ])
+            // 基本的なWasmバイナリを生成 (シンプルな関数を含む)
+            let wasmBinary = b.createArray(with: [
+                b.loadInt(0x00), // マジックナンバー
+                b.loadInt(0x61), 
+                b.loadInt(0x73),
+                b.loadInt(0x6d),
+                b.loadInt(0x01), // バージョン
+                b.loadInt(0x00),
+                b.loadInt(0x00),
+                b.loadInt(0x00)
             ])
             
-            // WASMモジュールをインスタンス化して実行
-            let instance = b.instantiateWasm(wasmBinary, imports: [importObj])
+            // インポートオブジェクトを作成
+            let importObj = b.createObject(with: [
+                "env": b.createObject(with: [
+                    "memory": b.construct(b.loadBuiltin("WebAssembly.Memory"), withArgs: [
+                        b.createObject(with: [
+                            "initial": b.loadInt(1),
+                            "maximum": b.loadInt(10)
+                        ])
+                    ])
+                ])
+            ])
+
+            // WebAssembly.Moduleをインスタンス化
+            let WebAssembly = b.loadBuiltin("WebAssembly")
+            let module = b.callMethod("compile", on: WebAssembly, withArgs: [wasmBinary])
             
-            // エクスポートされた関数を呼び出し
+            // WebAssembly.Instanceを作成
+            let instance = b.callMethod("instantiate", on: WebAssembly, withArgs: [module, importObj])
+            
+            // エクスポートされた関数を取得して実行
             let exports = b.getProperty("exports", of: instance)
-            // エクスポートされた関数を呼び出す
             b.callMethod("main", on: exports, withArgs: [], guard: true)
             
         }, catchBody: { error in
-            // エラーが発生した場合でも処理を継続
+            // エラーが発生したも処理を継続するため、undefinedを返す
             b.loadUndefined()
         })
     },
 
-    // Wasmに関連する新しいジェネレータを追加
-    CodeGenerator("WasmMemoryGenerator") { b in
+    // メモリ操作のテストを追加
+    CodeGenerator("WasmMemoryOperationsGenerator") { b in
         b.buildTryCatchFinally(tryBody: {
-            // メモリを作成
-            let memory = b.loadBuiltin("Memory") 
-            let memoryInstance = b.construct(memory, withArgs: [
+            // WebAssembly.Memoryインスタンスを作成
+            let memory = b.construct(b.loadBuiltin("WebAssembly.Memory"), withArgs: [
                 b.createObject(with: [
                     "initial": b.loadInt(1),
                     "maximum": b.loadInt(10)
                 ])
             ])
             
-            // メモリにデータを書き込み
-            let view = b.construct(b.loadBuiltin("Int32Array"), withArgs: [memoryInstance])
+            // メモリビューを作成してデータを操作
+            let view = b.construct(b.loadBuiltin("Int32Array"), withArgs: [
+                b.getProperty("buffer", of: memory)
+            ])
+            
+            // データを書き込み
             b.callMethod("set", on: view, withArgs: [
                 b.createIntArray(with: [1, 2, 3, 4])
             ])
+            
+            // メモリをgrow
+            b.callMethod("grow", on: memory, withArgs: [b.loadInt(1)])
             
         }, catchBody: { error in
             b.loadUndefined()
