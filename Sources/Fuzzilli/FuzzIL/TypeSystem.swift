@@ -100,6 +100,70 @@
 //
 // See also Tests/FuzzilliTests/TypeSystemTest.swift for examples of the various properties and features of this type system.
 //
+public enum TypeGroup: String {
+    case primitive = "primitive"
+    case object = "object"
+    case function = "function"
+    case typedArray = "typedArray"
+}
+
+// ILTypeをTypeにエイリアス
+public typealias Type = ILType
+
+// JavaScriptTypeの定義を修正
+public enum JavaScriptType: String {
+    case undefined = "undefined"
+    case integer = "integer"
+    case float = "float"
+    case string = "string"
+    case boolean = "boolean"
+    case object = "object"
+    case function = "function"
+    case constructor = "constructor"
+    case array = "array"
+    // WASM関連の型を追加
+    case uint8Array = "Uint8Array"
+    case wasmModule = "WebAssembly.Module"
+    case wasmInstance = "WebAssembly.Instance"
+    
+    public static let wasmTypes: [JavaScriptType] = [.uint8Array, .wasmModule, .wasmInstance]
+    
+    public var isWasmType: Bool {
+        return Self.wasmTypes.contains(self)
+    }
+    
+    public var group: TypeGroup {
+        switch self {
+        case .undefined, .integer, .float, .string, .boolean:
+            return .primitive
+        case .object, .array, .wasmModule, .wasmInstance:
+            return .object
+        case .function, .constructor:
+            return .function
+        case .uint8Array:
+            return .typedArray
+        }
+    }
+}
+
+// ILType (Type)の拡張として定義
+extension ILType {
+    // WASMモジュールの型を作成するヘルパーメソッド
+    public static func wasmModule() -> ILType {
+        return .object(ofGroup: "WebAssembly.Module")
+    }
+    
+    // WASMインスタンスの型を作成するヘルパーメソッド
+    public static func wasmInstance() -> ILType {
+        return .object(ofGroup: "WebAssembly.Instance")
+    }
+    
+    // Uint8Array型を作成するヘルパーメソッド
+    public static func uint8Array() -> ILType {
+        return .object(ofGroup: "Uint8Array")
+    }
+}
+
 public struct ILType: Hashable {
 
     //
