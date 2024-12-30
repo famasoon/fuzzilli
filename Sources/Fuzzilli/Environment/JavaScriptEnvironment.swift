@@ -344,76 +344,73 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
     )
 
     private func registerWebAssemblyTypes() {
-        // 各WebAssemblyコンポーネントの型を定義
-        let moduleType: ILType = .object(ofGroup: "WebAssembly.Module")
-        let instanceType: ILType = .object(ofGroup: "WebAssembly.Instance")
-        let memoryType: ILType = .object(ofGroup: "WebAssembly.Memory")
-        let tableType: ILType = .object(ofGroup: "WebAssembly.Table")
-
         // WebAssemblyのグループを登録
         let webAssemblyGroup = ObjectGroup(
             name: "WebAssembly",
             instanceType: .object(ofGroup: "WebAssembly"),
             properties: [
                 // Module constructor
-                "Module": .constructor(
-                    [Parameter.oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))] => moduleType
-                ),
+                "Module": .constructor([
+                    Parameter.oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))
+                ] => .object(ofGroup: "WebAssembly.Module")),
 
                 // Instance constructor
-                "Instance": .constructor(
-                    [Parameter.object(ofGroup: "WebAssembly.Module"), Parameter.opt(.object())] => instanceType
-                ),
+                "Instance": .constructor([
+                    Parameter.object(ofGroup: "WebAssembly.Module"),
+                    Parameter.opt(.object())
+                ] => .object(ofGroup: "WebAssembly.Instance")),
 
                 // Memory constructor
-                "Memory": .constructor(
-                    [Parameter.object(withProperties: ["initial", "maximum", "shared"])] => memoryType
-                ),
+                "Memory": .constructor([
+                    Parameter.object(withProperties: ["initial", "maximum", "shared"])
+                ] => .object(ofGroup: "WebAssembly.Memory")),
 
                 // Table constructor
-                "Table": .constructor(
-                    [Parameter.object(withProperties: ["initial", "maximum", "element"])] => tableType
-                ),
+                "Table": .constructor([
+                    Parameter.object(withProperties: ["initial", "maximum", "element"])
+                ] => .object(ofGroup: "WebAssembly.Table")),
 
                 // Static method
-                "validate": .function(
-                    [Parameter.oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))] => .boolean
-                )
+                "validate": .function([
+                    Parameter.oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))
+                ] => .boolean)
             ],
             methods: [:]
         )
 
         registerObjectGroup(webAssemblyGroup)
 
-        // 各コンポーネントのObjectGroupを登録
+        // WebAssembly.Moduleのグループを登録（重複を削除）
         registerObjectGroup(ObjectGroup(
             name: "WebAssembly.Module",
-            instanceType: moduleType,
+            instanceType: .object(ofGroup: "WebAssembly.Module"),
             properties: [:],
             methods: [
-                "exports": [] => .jsArray,
-                "imports": [] => .jsArray,
-                "customSections": [.string] => .jsArray
+                // インスタンスメソッド
+                "customSections": [.object(ofGroup: "WebAssembly.Module"), .string] => .jsArray,
+                "exports": [.object(ofGroup: "WebAssembly.Module")] => .jsArray,
+                "imports": [.object(ofGroup: "WebAssembly.Module")] => .jsArray
             ]
         ))
 
+        // 他のWebAssemblyコンポーネントのグループを登録
         registerObjectGroup(ObjectGroup(
             name: "WebAssembly.Instance",
-            instanceType: instanceType,
+            instanceType: .object(ofGroup: "WebAssembly.Instance"),
             properties: ["exports": .object()],
             methods: [:]
         ))
 
         registerObjectGroup(ObjectGroup(
             name: "WebAssembly.Memory",
-            instanceType: memoryType,
+            instanceType: .object(ofGroup: "WebAssembly.Memory"),
             properties: ["buffer": .object(ofGroup: "ArrayBuffer")],
             methods: ["grow": [.integer] => .integer]
         ))
 
         registerObjectGroup(ObjectGroup(
             name: "WebAssembly.Table",
-            instanceType: tableType,
+            instanceType: .object(ofGroup: "WebAssembly.Table"),
             properties: ["length": .integer],
             methods: [
                 "get": [.integer] => .function(),
@@ -679,6 +676,41 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             properties: ["length": .integer, "grow": .function()],
             methods: [:]
         ))
+
+        // WebAssemblyのビルトインを登録
+        registerBuiltin("WebAssembly", ofType: .object(ofGroup: "WebAssembly"))
+        registerBuiltin("WebAssembly.Module", ofType: .constructor([
+            Parameter.oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))
+        ] => .object(ofGroup: "WebAssembly.Module")))
+        registerBuiltin("WebAssembly.Instance", ofType: .constructor([
+            Parameter.object(ofGroup: "WebAssembly.Module"),
+            Parameter.opt(.object())
+        ] => .object(ofGroup: "WebAssembly.Instance")))
+        registerBuiltin("WebAssembly.Memory", ofType: .constructor([
+            Parameter.object(withProperties: ["initial", "maximum", "shared"])
+        ] => .object(ofGroup: "WebAssembly.Memory")))
+        registerBuiltin("WebAssembly.Table", ofType: .constructor([
+            Parameter.object(withProperties: ["initial", "maximum", "element"])
+        ] => .object(ofGroup: "WebAssembly.Table")))
+
+        // WebAssemblyの追加メソッドを登録
+        registerBuiltin("WebAssembly.compile", ofType: .function([
+            Parameter.oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))
+        ] => .object(ofGroup: "Promise")))
+        
+        registerBuiltin("WebAssembly.instantiate", ofType: .function([
+            Parameter.oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray")),
+            Parameter.opt(.object())
+        ] => .object(ofGroup: "Promise")))
+        
+        registerBuiltin("WebAssembly.compileStreaming", ofType: .function([
+            Parameter.object(ofGroup: "Promise")
+        ] => .object(ofGroup: "Promise")))
+        
+        registerBuiltin("WebAssembly.instantiateStreaming", ofType: .function([
+            Parameter.object(ofGroup: "Promise"),
+            Parameter.opt(.object())
+        ] => .object(ofGroup: "Promise")))
     }
 
     override func initialize() {
