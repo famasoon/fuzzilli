@@ -1865,71 +1865,50 @@ public let CodeGenerators: [CodeGenerator] = [
     },
 
     CodeGenerator("WasmGenerator") { b in
-        // WebAssemblyのテストケースを必ず実行するために、try-catchで囲む
         b.buildTryCatchFinally(tryBody: {
-            // Uint8Arrayを使用してWASMバイナリを作成
-            let wasmBytes = [
-                // WASMモジュールのマジックナンバーとバージョン
-                0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
-                // 他のWASMバイナリセクション...
-            ]
-            
-            // Uint8Arrayを作成
-            let Uint8Array = b.loadBuiltin("Uint8Array")
-            let wasmBuffer = b.createIntArray(with: wasmBytes.map { Int64($0) })
-            let wasmUint8Array = b.construct(Uint8Array, withArgs: [wasmBuffer])
-            
-            // WebAssembly.instantiate()を使用してモジュールをインスタンス化
             let WebAssembly = b.loadBuiltin("WebAssembly")
-            let instance = b.callMethod("instantiate", on: WebAssembly, withArgs: [wasmUint8Array])
             
-            // メモリにアクセス
-            let memory = b.getWasmMemory(instance)
+            // WebAssembly.Moduleを作成
+            let moduleDesc = b.createObject(with: [
+                "initial": b.loadInt(1),
+                "maximum": b.loadInt(10)
+            ])
+            let module = b.construct(b.getProperty("Module", of: WebAssembly), withArgs: [moduleDesc])
             
-            // ランダムなデータを書き込む
-            for _ in 0..<5 {
-                let offset = Int64.random(in: 0..<1024)
-                let data = (0..<Int.random(in: 1...32)).map { _ in UInt8.random(in: 0...255) }
-                b.writeWasmMemory(memory, offset: offset, values: data)
-            }
-
+            // WebAssembly.Instanceを作成
+            let instance = b.construct(b.getProperty("Instance", of: WebAssembly), withArgs: [module])
+            
             // エクスポートされた関数を呼び出す
-            let exportNames = ["test_func1", "test_func2", "test_func3"]
-            for name in exportNames {
-                let func_ = b.getWasmExport(instance, name)
-                b.callFunction(func_, withArgs: b.randomArguments(forCalling: func_))
+            let exports = b.getProperty("exports", of: instance)
+            let funcNames = ["test", "main"]
+            for name in funcNames {
+                let func_ = b.getProperty(name, of: exports)
+                b.callFunction(func_, withArgs: [])
             }
             
         }, catchBody: { error in
-            // エラーが発生しても処理を継続するため、undefinedを返す
             b.loadUndefined()
         })
     },
 
-    // メモリ操作のテストを追加
     CodeGenerator("WasmMemoryOperationsGenerator") { b in
         b.buildTryCatchFinally(tryBody: {
-            // WebAssembly.Memoryを使用してメモリを作成
             let WebAssembly = b.loadBuiltin("WebAssembly")
-            let memory = b.construct(b.getProperty("Memory", of: WebAssembly), withArgs: [
-                b.createObject(with: [
-                    "initial": b.loadInt(1),
-                    "maximum": b.loadInt(10)
-                ])
-            ])
             
-            // メモリビューを作成してデータを操作
-            let view = b.construct(b.loadBuiltin("Int32Array"), withArgs: [
-                b.getProperty("buffer", of: memory)
+            // WebAssembly.Memoryを作成
+            let memoryDesc = b.createObject(with: [
+                "initial": b.loadInt(1),
+                "maximum": b.loadInt(10)
             ])
+            let memory = b.construct(b.getProperty("Memory", of: WebAssembly), withArgs: [memoryDesc])
+            
+            // メモリを操作
+            let buffer = b.getProperty("buffer", of: memory)
+            let view = b.construct(b.loadBuiltin("Uint8Array"), withArgs: [buffer])
             
             // データを書き込み
-            b.callMethod("set", on: view, withArgs: [
-                b.createIntArray(with: [1, 2, 3, 4])
-            ])
-            
-            // メモリをgrow
-            b.callMethod("grow", on: memory, withArgs: [b.loadInt(1)])
+            let data = b.createArray(with: [b.loadInt(1), b.loadInt(2), b.loadInt(3)])
+            b.callMethod("set", on: view, withArgs: [data])
             
         }, catchBody: { error in
             b.loadUndefined()
@@ -1938,31 +1917,17 @@ public let CodeGenerators: [CodeGenerator] = [
 
     CodeGenerator("WasmTableGenerator") { b in
         b.buildTryCatchFinally(tryBody: {
-            // WebAssembly名前空間から直接Tableを取得
             let WebAssembly = b.loadBuiltin("WebAssembly")
+            
+            // WebAssembly.Tableを作成
             let tableDesc = b.createObject(with: [
                 "initial": b.loadInt(1),
                 "element": b.loadString("anyfunc")
             ])
-            
-            // WebAssembly.Tableを使用
             let table = b.construct(b.getProperty("Table", of: WebAssembly), withArgs: [tableDesc])
             
             // テーブルを操作
-            let result = withEqualProbability({
-                // テーブルを拡張
-                return b.callMethod("grow", on: table, withArgs: [b.loadInt(1)])
-            }, {
-                // テーブルにアクセス
-                return b.callMethod("get", on: table, withArgs: [b.loadInt(0)])
-            }, {
-                // テーブルに値を設定
-                let func_ = b.buildPlainFunction(with: .parameters(n: 0)) { _ in 
-                    let val = b.loadInt(42)
-                    b.doReturn(val)
-                }
-                return b.callMethod("set", on: table, withArgs: [b.loadInt(0), func_])
-            })
+            b.callMethod("grow", on: table, withArgs: [b.loadInt(1)])
             
         }, catchBody: { error in
             b.loadUndefined()
