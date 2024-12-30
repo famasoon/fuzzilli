@@ -205,4 +205,5 @@ public let codeGeneratorWeights: [String: Int] = [
     "BasicWasmGenerator": 20,
     "WasmMemoryGenerator": 10,
     "WebAssemblyModuleGenerator": 25,  // 新しいWebAssemblyモジュールジェネレータの重み
+    "WebAssemblyMemoryGenerator": 15,  // 追加：WebAssemblyメモリジェネレータの重み
 ]
