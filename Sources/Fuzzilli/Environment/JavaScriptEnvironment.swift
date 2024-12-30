@@ -352,14 +352,89 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
         0x07, 0x08, 0x01, 0x04, 0x6d, 0x61, 0x69, 0x6e, 0x00, 0x00,  // export section
     ]
 
-    public let wasmModuleSignature = Signature(
+    // WebAssembly関連のシグネチャをクラスレベルで定義
+    private let wasmModuleSignature = Signature(
         expects: [Parameter.object(ofGroup: "Uint8Array")],
         returns: .object(ofGroup: "WebAssembly.Module")
     )
 
-    public init(
-        additionalBuiltins: [String: ILType] = [:], additionalObjectGroups: [ObjectGroup] = []
-    ) {
+    private let wasmInstanceSignature = Signature(
+        expects: [
+            Parameter.object(ofGroup: "WebAssembly.Module"),
+            Parameter.object(withProperties: ["m"])
+        ],
+        returns: .object(ofGroup: "WebAssembly.Instance")
+    )
+
+    private func registerWebAssemblyTypes() {
+        // WebAssembly.Module
+        registerObjectGroup(ObjectGroup(
+            name: "WebAssembly.Module",
+            instanceType: .object(ofGroup: "WebAssembly.Module"),
+            properties: [
+                "exports": .object(),
+                "customSections": .object()
+            ],
+            methods: [:]
+        ))
+
+        // WebAssembly.Instance
+        registerObjectGroup(ObjectGroup(
+            name: "WebAssembly.Instance",
+            instanceType: .object(ofGroup: "WebAssembly.Instance"),
+            properties: [
+                "exports": .object(),
+                "memory": .object()
+            ],
+            methods: [:]
+        ))
+
+        // WebAssembly.Memory
+        registerObjectGroup(ObjectGroup(
+            name: "WebAssembly.Memory",
+            instanceType: .object(ofGroup: "WebAssembly.Memory"),
+            properties: [
+                "buffer": .object(),
+                "grow": .function()
+            ],
+            methods: [:]
+        ))
+
+        // WebAssembly.Table
+        registerObjectGroup(ObjectGroup(
+            name: "WebAssembly.Table",
+            instanceType: .object(ofGroup: "WebAssembly.Table"),
+            properties: [
+                "length": .integer,
+                "grow": .function()
+            ],
+            methods: [:]
+        ))
+
+        // WebAssembly namespace
+        registerObjectGroup(ObjectGroup(
+            name: "WebAssembly",
+            instanceType: .object(ofGroup: "WebAssembly"),
+            properties: [
+                "Module": .constructor(),
+                "Instance": .constructor(),
+                "Memory": .constructor(),
+                "Table": .constructor(),
+                "validate": .function(),
+            ],
+            methods: [:]
+        ))
+
+        // Register WebAssembly constructors
+        registerBuiltin(
+            "WebAssembly.Module",
+            ofType: .constructor(wasmModuleSignature))
+        registerBuiltin(
+            "WebAssembly.Instance",
+            ofType: .constructor(wasmInstanceSignature))
+    }
+
+    public init(additionalBuiltins: [String: ILType] = [:], additionalObjectGroups: [ObjectGroup] = []) {
         super.init(name: "JavaScriptEnvironment")
 
         // Build model of the JavaScript environment
@@ -506,77 +581,8 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
                 ]
             ))
 
-        // WebAssemblyのグループを登録
-        registerObjectGroup(JavaScriptEnvironment.jsWebAssemblyObject)
-
-        // WebAssembly.Module, Instance, Memory, Tableのコンストラクタを登録
-        registerBuiltin(
-            "WebAssembly.Module",
-            ofType: ILType.constructor(
-                Signature(
-                    expects: [Parameter.object(ofGroup: "Uint8Array")],
-                    returns: .object(ofGroup: "WebAssembly.Module")
-                )))
-
-        registerBuiltin(
-            "WebAssembly.Instance",
-            ofType: ILType.constructor(
-                Signature(
-                    expects: [
-                        Parameter.object(ofGroup: "WebAssembly.Module"),
-                        Parameter.object(withProperties: ["m"])
-                    ],
-                    returns: .object(ofGroup: "WebAssembly.Instance")
-                )))
-
-        registerBuiltin(
-            "WebAssembly.Memory",
-            ofType: ILType.constructor(
-                Signature(
-                    expects: [Parameter.object(withProperties: ["initial", "maximum"])],
-                    returns: .object(ofGroup: "WebAssembly.Memory")
-                )))
-
-        registerBuiltin(
-            "WebAssembly.Table",
-            ofType: ILType.constructor(
-                Signature(
-                    expects: [Parameter.object(withProperties: ["initial", "element"])],
-                    returns: .object(ofGroup: "WebAssembly.Table")
-                )))
-
-        // WebAssemblyのグブグループを登録
-        registerObjectGroup(
-            ObjectGroup(
-                name: "WebAssembly.Module",
-                instanceType: .object(ofGroup: "WebAssembly.Module"),
-                properties: ["exports": .object()],
-                methods: [:]
-            ))
-
-        registerObjectGroup(
-            ObjectGroup(
-                name: "WebAssembly.Instance",
-                instanceType: .object(ofGroup: "WebAssembly.Instance"),
-                properties: ["exports": .object()],
-                methods: [:]
-            ))
-
-        registerObjectGroup(
-            ObjectGroup(
-                name: "WebAssembly.Memory",
-                instanceType: .object(ofGroup: "WebAssembly.Memory"),
-                properties: ["buffer": .object(ofGroup: "ArrayBuffer")],
-                methods: ["grow": [.integer] => .integer]
-            ))
-
-        registerObjectGroup(
-            ObjectGroup(
-                name: "WebAssembly.Table",
-                instanceType: .object(ofGroup: "WebAssembly.Table"),
-                properties: ["length": .integer],
-                methods: ["grow": [.integer] => .integer]
-            ))
+        // WebAssembly関連の型を登録
+        registerWebAssemblyTypes()
 
         // TypedArrayのコンストラクタ定義
         registerBuiltin(
