@@ -345,15 +345,44 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
 
     private func registerWebAssemblyTypes() {
         // WebAssemblyのグループを登録
-        registerObjectGroup(JavaScriptEnvironment.jsWebAssemblyObject)
+        registerObjectGroup(ObjectGroup(
+            name: "WebAssembly",
+            instanceType: .object(ofGroup: "WebAssembly"),
+            properties: [
+                "Module": .constructor(Signature(
+                    expects: [Parameter.object(ofGroup: "Uint8Array")],
+                    returns: .object(ofGroup: "WebAssembly.Module")
+                )),
+                "Instance": .constructor(Signature(
+                    expects: [
+                        Parameter.object(ofGroup: "WebAssembly.Module"),
+                        Parameter.object(withProperties: ["imports"])
+                    ],
+                    returns: .object(ofGroup: "WebAssembly.Instance")
+                )),
+                "Memory": .constructor(Signature(
+                    expects: [Parameter.object(withProperties: ["initial", "maximum", "shared"])],
+                    returns: .object(ofGroup: "WebAssembly.Memory")
+                )),
+                "Table": .constructor(Signature(
+                    expects: [Parameter.object(withProperties: ["initial", "maximum", "element"])],
+                    returns: .object(ofGroup: "WebAssembly.Table")
+                )),
+                "validate": .function(Signature(
+                    expects: [Parameter.object(ofGroup: "Uint8Array")],
+                    returns: .boolean
+                ))
+            ],
+            methods: [:]
+        ))
 
         // WebAssembly.Module
         registerObjectGroup(ObjectGroup(
             name: "WebAssembly.Module",
             instanceType: .object(ofGroup: "WebAssembly.Module"),
             properties: [
-                "exports": .object(),
-                "customSections": .object()
+                "exports": .jsArray,
+                "customSections": .jsArray
             ],
             methods: [:]
         ))
@@ -364,7 +393,6 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             instanceType: .object(ofGroup: "WebAssembly.Instance"),
             properties: [
                 "exports": .object(),
-                "memory": .object()
             ],
             methods: [:]
         ))
@@ -375,9 +403,10 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             instanceType: .object(ofGroup: "WebAssembly.Memory"),
             properties: [
                 "buffer": .object(ofGroup: "ArrayBuffer"),
-                "grow": .function()
             ],
-            methods: [:]
+            methods: [
+                "grow": [.integer] => .integer
+            ]
         ))
 
         // WebAssembly.Table
@@ -386,63 +415,13 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             instanceType: .object(ofGroup: "WebAssembly.Table"),
             properties: [
                 "length": .integer,
-                "grow": .function()
             ],
-            methods: [:]
+            methods: [
+                "get": [.integer] => .function(),
+                "set": [.integer, .function()] => .undefined,
+                "grow": [.integer] => .integer
+            ]
         ))
-
-        // WebAssembly.Module constructor
-        registerBuiltin(
-            "WebAssembly.Module",
-            ofType: .constructor(
-                Signature(
-                    expects: [Parameter.object(ofGroup: "Uint8Array")],
-                    returns: .object(ofGroup: "WebAssembly.Module")
-                )
-            )
-        )
-
-        // WebAssembly.Instance constructor
-        registerBuiltin(
-            "WebAssembly.Instance",
-            ofType: .constructor(
-                Signature(
-                    expects: [
-                        Parameter.object(ofGroup: "WebAssembly.Module"),
-                        Parameter.object(withProperties: ["m"])
-                    ],
-                    returns: .object(ofGroup: "WebAssembly.Instance")
-                )
-            )
-        )
-
-        // WebAssembly.Memory constructor
-        registerBuiltin(
-            "WebAssembly.Memory",
-            ofType: .constructor(
-                Signature(
-                    expects: [Parameter.object(withProperties: ["initial", "maximum"])],
-                    returns: .object(ofGroup: "WebAssembly.Memory")
-                )
-            )
-        )
-
-        // WebAssembly.Table constructor
-        registerBuiltin(
-            "WebAssembly.Table",
-            ofType: .constructor(
-                Signature(
-                    expects: [Parameter.object(withProperties: ["initial", "element"])],
-                    returns: .object(ofGroup: "WebAssembly.Table")
-                )
-            )
-        )
-
-        // WebAssembly namespace
-        registerBuiltin(
-            "WebAssembly",
-            ofType: .object(ofGroup: "WebAssembly")
-        )
     }
 
     public init(additionalBuiltins: [String: ILType] = [:], additionalObjectGroups: [ObjectGroup] = []) {
