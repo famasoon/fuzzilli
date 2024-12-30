@@ -349,29 +349,24 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             name: "WebAssembly",
             instanceType: .object(ofGroup: "WebAssembly"),
             properties: [
-                "Module": .constructor(Signature(
-                    expects: [Parameter.object(ofGroup: "Uint8Array")],  // ArrayBufferまたはUint8Array
-                    returns: .object(ofGroup: "WebAssembly.Module")
-                )),
-                "Instance": .constructor(Signature(
-                    expects: [
-                        Parameter.object(ofGroup: "WebAssembly.Module"),
-                        Parameter.opt(.object())  // importObject is optional
-                    ],
-                    returns: .object(ofGroup: "WebAssembly.Instance")
-                )),
-                "Memory": .constructor(Signature(
-                    expects: [Parameter.object(withProperties: ["initial"])],  // maximum and shared are optional
-                    returns: .object(ofGroup: "WebAssembly.Memory")
-                )),
-                "Table": .constructor(Signature(
-                    expects: [Parameter.object(withProperties: ["initial", "element"])],  // maximum is optional
-                    returns: .object(ofGroup: "WebAssembly.Table")
-                )),
-                "validate": .function(Signature(
-                    expects: [Parameter.object(ofGroup: "Uint8Array")],  // ArrayBufferまたはUint8Array
-                    returns: .boolean
-                ))
+                "Module": .constructor(
+                    [.object(ofGroup: "Uint8Array")] => .object(ofGroup: "WebAssembly.Module")
+                ),
+                "Instance": .constructor(
+                    [
+                        .object(ofGroup: "WebAssembly.Module"),
+                        .opt(.object())  // importObject is optional
+                    ] => .object(ofGroup: "WebAssembly.Instance")
+                ),
+                "Memory": .constructor(
+                    [.object(withProperties: ["initial"])] => .object(ofGroup: "WebAssembly.Memory")
+                ),
+                "Table": .constructor(
+                    [.object(withProperties: ["initial", "element"])] => .object(ofGroup: "WebAssembly.Table")
+                ),
+                "validate": .function(
+                    [.object(ofGroup: "Uint8Array")] => .boolean
+                )
             ],
             methods: [:]
         ))
@@ -418,14 +413,11 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
                 "length": .integer
             ],
             methods: [
-                "get": [.integer] => .function(),  // nullableな戻り値は.function()として扱う
-                "set": [.integer, .opt(.function())] => .undefined,  // nullableな引数は.function()として扱う
+                "get": [.integer] => .function(),
+                "set": [.integer, .function()] => .undefined,
                 "grow": [.integer] => .integer
             ]
         ))
-
-        // WebAssemblyのビルトインを登録
-        registerBuiltin("WebAssembly", ofType: .object(ofGroup: "WebAssembly"))
     }
 
     public init(additionalBuiltins: [String: ILType] = [:], additionalObjectGroups: [ObjectGroup] = []) {
