@@ -343,30 +343,10 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
         methods: [:]
     )
 
-    // WebAssemblyのバイナリデータを表す定数
-    public let wasmBinaryData: [UInt8] = [
-        0x00, 0x61, 0x73, 0x6d,  // magic number
-        0x01, 0x00, 0x00, 0x00,  // version
-        0x01, 0x04, 0x01, 0x60, 0x00, 0x00,  // type section
-        0x02, 0x07, 0x01, 0x01, 0x6d, 0x01, 0x66, 0x00, 0x00,  // import section
-        0x07, 0x08, 0x01, 0x04, 0x6d, 0x61, 0x69, 0x6e, 0x00, 0x00,  // export section
-    ]
-
-    // WebAssembly関連のシグネチャをクラスレベルで定義
-    private let wasmModuleSignature = Signature(
-        expects: [Parameter.object(ofGroup: "Uint8Array")],
-        returns: .object(ofGroup: "WebAssembly.Module")
-    )
-
-    private let wasmInstanceSignature = Signature(
-        expects: [
-            Parameter.object(ofGroup: "WebAssembly.Module"),
-            Parameter.object(withProperties: ["m"])
-        ],
-        returns: .object(ofGroup: "WebAssembly.Instance")
-    )
-
     private func registerWebAssemblyTypes() {
+        // WebAssemblyのグループを登録
+        registerObjectGroup(JavaScriptEnvironment.jsWebAssemblyObject)
+
         // WebAssembly.Module
         registerObjectGroup(ObjectGroup(
             name: "WebAssembly.Module",
@@ -394,7 +374,7 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             name: "WebAssembly.Memory",
             instanceType: .object(ofGroup: "WebAssembly.Memory"),
             properties: [
-                "buffer": .object(),
+                "buffer": .object(ofGroup: "ArrayBuffer"),
                 "grow": .function()
             ],
             methods: [:]
@@ -411,31 +391,65 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             methods: [:]
         ))
 
-        // WebAssembly namespace
-        registerObjectGroup(ObjectGroup(
-            name: "WebAssembly",
-            instanceType: .object(ofGroup: "WebAssembly"),
-            properties: [
-                "Module": .constructor(),
-                "Instance": .constructor(),
-                "Memory": .constructor(),
-                "Table": .constructor(),
-                "validate": .function(),
-            ],
-            methods: [:]
-        ))
-
-        // Register WebAssembly constructors
+        // WebAssembly.Module constructor
         registerBuiltin(
             "WebAssembly.Module",
-            ofType: .constructor(wasmModuleSignature))
+            ofType: .constructor(
+                Signature(
+                    expects: [Parameter.object(ofGroup: "Uint8Array")],
+                    returns: .object(ofGroup: "WebAssembly.Module")
+                )
+            )
+        )
+
+        // WebAssembly.Instance constructor
         registerBuiltin(
             "WebAssembly.Instance",
-            ofType: .constructor(wasmInstanceSignature))
+            ofType: .constructor(
+                Signature(
+                    expects: [
+                        Parameter.object(ofGroup: "WebAssembly.Module"),
+                        Parameter.object(withProperties: ["m"])
+                    ],
+                    returns: .object(ofGroup: "WebAssembly.Instance")
+                )
+            )
+        )
+
+        // WebAssembly.Memory constructor
+        registerBuiltin(
+            "WebAssembly.Memory",
+            ofType: .constructor(
+                Signature(
+                    expects: [Parameter.object(withProperties: ["initial", "maximum"])],
+                    returns: .object(ofGroup: "WebAssembly.Memory")
+                )
+            )
+        )
+
+        // WebAssembly.Table constructor
+        registerBuiltin(
+            "WebAssembly.Table",
+            ofType: .constructor(
+                Signature(
+                    expects: [Parameter.object(withProperties: ["initial", "element"])],
+                    returns: .object(ofGroup: "WebAssembly.Table")
+                )
+            )
+        )
+
+        // WebAssembly namespace
+        registerBuiltin(
+            "WebAssembly",
+            ofType: .object(ofGroup: "WebAssembly")
+        )
     }
 
     public init(additionalBuiltins: [String: ILType] = [:], additionalObjectGroups: [ObjectGroup] = []) {
         super.init(name: "JavaScriptEnvironment")
+
+        // WebAssembly関連の型を登録
+        registerWebAssemblyTypes()
 
         // Build model of the JavaScript environment
 
@@ -581,9 +595,6 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
                 ]
             ))
 
-        // WebAssembly関連の型を登録
-        registerWebAssemblyTypes()
-
         // TypedArrayのコンストラクタ定義
         registerBuiltin(
             "Uint8Array",
@@ -640,6 +651,13 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
                 Parameter.object(withProperties: ["m"]) // シンプルに文字列の配列として指定
             ],
             returns: .object(ofGroup: "WebAssembly.Instance")
+        )
+
+        // WebAssembly.Module, Instance, Memory, Tableのコンストラクタを登録する前に
+        // シグネチャを定義
+        let wasmModuleSignature = Signature(
+            expects: [Parameter.object(ofGroup: "Uint8Array")],
+            returns: .object(ofGroup: "WebAssembly.Module")
         )
 
         // WebAssembly.Module, Instance, Memory, Tableのコンストラクタを登録

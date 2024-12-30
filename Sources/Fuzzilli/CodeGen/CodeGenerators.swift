@@ -2009,7 +2009,8 @@ public let CodeGenerators: [CodeGenerator] = [
             let bytes = b.createIntArray(with: wasmBytes)
             let uint8Array = b.construct(b.loadBuiltin("Uint8Array"), withArgs: [bytes])
             
-            // WebAssembly.Moduleの作成
+            // WebAssembly.Moduleの作成とvalidate
+            b.callMethod("validate", on: WebAssembly, withArgs: [uint8Array])
             let module = b.construct(b.getProperty("Module", of: WebAssembly), withArgs: [uint8Array])
             
             // インポートオブジェクトの作成
