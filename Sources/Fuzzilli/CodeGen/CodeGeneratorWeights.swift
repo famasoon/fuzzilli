@@ -197,11 +197,10 @@ public let codeGeneratorWeights: [String: Int] = [
     "VoidGenerator": 1,
 
     // WebAssembly関連のジェネレータ
-    "WasmInstanceGenerator": 50,        // WebAssembly.Instance
-    "WasmModuleGenerator": 40,         // WebAssembly.Module
-    "WasmMemoryGenerator": 30,         // WebAssembly.Memory
-    "WasmTableGenerator": 30,          // WebAssembly.Table
-    "WasmGlobalGenerator": 20,         // WebAssembly.Global
-    "WasmMemoryOperationsGenerator": 40,
-    "WasmTableOperationsGenerator": 30,
+    "WasmGenerator": 50,                     // 基本的なWASM操作
+    "WasmMemoryOperationsGenerator": 40,     // WebAssembly.Memoryの操作
+    "WasmTableGenerator": 30,                // WebAssembly.Tableの操作
+    "WebAssemblyModuleGenerator": 40,        // WebAssembly.Moduleの生成と操作
+    "WebAssemblyMemoryGenerator": 30,        // WebAssembly.Memoryの生成
+    "WebAssemblyGenerator": 50,              // 完全なWebAssemblyワークフロー
 ]
