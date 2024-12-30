@@ -349,19 +349,19 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             name: "WebAssembly",
             instanceType: .object(ofGroup: "WebAssembly"),
             properties: [
-                // Module constructor: accepts binary data
-                "Module": .constructor([
+                // Module constructor
+                "Module": .functionAndConstructor([
                     .oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))
                 ] => .object(ofGroup: "WebAssembly.Module")),
 
-                // Instance constructor: accepts module and imports
-                "Instance": .constructor([
+                // Instance constructor
+                "Instance": .functionAndConstructor([
                     .object(ofGroup: "WebAssembly.Module"),
-                    .opt(.object())  // Optional imports object
+                    .opt(.object())
                 ] => .object(ofGroup: "WebAssembly.Instance")),
 
-                // Memory constructor: accepts memory descriptor
-                "Memory": .constructor([
+                // Memory constructor
+                "Memory": .functionAndConstructor([
                     .object(withProperties: [
                         "initial",
                         "maximum",
@@ -369,8 +369,8 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
                     ])
                 ] => .object(ofGroup: "WebAssembly.Memory")),
 
-                // Table constructor: accepts table descriptor
-                "Table": .constructor([
+                // Table constructor
+                "Table": .functionAndConstructor([
                     .object(withProperties: [
                         "initial",
                         "maximum", 
