@@ -1932,6 +1932,65 @@ public let CodeGenerators: [CodeGenerator] = [
         }, catchBody: { error in
             b.loadUndefined()
         })
+    },
+
+    CodeGenerator("WebAssemblyModuleGenerator") { b in
+        b.buildTryCatchFinally(tryBody: {
+            let WebAssembly = b.loadBuiltin("WebAssembly")
+            
+            // Uint8Arrayの作成
+            let bytes = b.createIntArray(with: [0x00, 0x61, 0x73, 0x6d]) // 簡単なWASMモジュールのマジックナンバー
+            let uint8Array = b.construct(b.loadBuiltin("Uint8Array"), withArgs: [bytes])
+            
+            // WebAssembly.Moduleの作成
+            let module = b.construct(b.getProperty("Module", of: WebAssembly), withArgs: [uint8Array])
+            
+            // インポートオブジェクトの作成
+            let importFunc = b.buildPlainFunction(with: .parameters(n: 0)) { _ in
+                b.doReturn(b.loadInt(42))
+            }
+            let importObj = b.createObject(with: [
+                "m": b.createObject(with: [
+                    "f": importFunc
+                ])
+            ])
+            
+            // WebAssembly.Instanceの作成
+            let instance = b.construct(b.getProperty("Instance", of: WebAssembly), withArgs: [module, importObj])
+            
+            // エクスポートされた関数を取得して実行
+            let exports = b.getProperty("exports", of: instance)
+            let main = b.getProperty("main", of: exports)
+            b.callFunction(main, withArgs: [])
+            
+        }, catchBody: { error in
+            b.loadUndefined()
+        })
+    },
+
+    CodeGenerator("WebAssemblyMemoryGenerator") { b in
+        b.buildTryCatchFinally(tryBody: {
+            let WebAssembly = b.loadBuiltin("WebAssembly")
+            
+            // メモリ設定オブジェクトの作成
+            let memoryDesc = b.createObject(with: [
+                "initial": b.loadInt(1),
+                "maximum": b.loadInt(10)
+            ])
+            
+            // WebAssembly.Memoryの作成
+            let memory = b.construct(b.getProperty("Memory", of: WebAssembly), withArgs: [memoryDesc])
+            
+            // メモリの操作
+            let buffer = b.getProperty("buffer", of: memory)
+            let view = b.construct(b.loadBuiltin("Uint8Array"), withArgs: [buffer])
+            
+            // データの書き込み
+            b.callMethod("grow", on: memory, withArgs: [b.loadInt(1)])
+            
+        }, catchBody: { error in
+            b.loadUndefined()
+        })
     }
 ]
 
