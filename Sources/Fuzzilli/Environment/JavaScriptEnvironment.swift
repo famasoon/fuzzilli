@@ -350,26 +350,26 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             instanceType: .object(ofGroup: "WebAssembly"),
             properties: [
                 "Module": .constructor(Signature(
-                    expects: [Parameter.object(ofGroup: "Uint8Array")],
+                    expects: [.object(ofGroup: "ArrayBuffer")],
                     returns: .object(ofGroup: "WebAssembly.Module")
                 )),
                 "Instance": .constructor(Signature(
                     expects: [
-                        Parameter.object(ofGroup: "WebAssembly.Module"),
-                        Parameter.object(withProperties: ["imports"])
+                        .object(ofGroup: "WebAssembly.Module"),
+                        .object(withProperties: ["imports"])
                     ],
                     returns: .object(ofGroup: "WebAssembly.Instance")
                 )),
                 "Memory": .constructor(Signature(
-                    expects: [Parameter.object(withProperties: ["initial", "maximum", "shared"])],
+                    expects: [.object(withProperties: ["initial", "maximum", "shared"])],
                     returns: .object(ofGroup: "WebAssembly.Memory")
                 )),
                 "Table": .constructor(Signature(
-                    expects: [Parameter.object(withProperties: ["initial", "maximum", "element"])],
+                    expects: [.object(withProperties: ["initial", "maximum", "element"])],
                     returns: .object(ofGroup: "WebAssembly.Table")
                 )),
                 "validate": .function(Signature(
-                    expects: [Parameter.object(ofGroup: "Uint8Array")],
+                    expects: [.object(ofGroup: "ArrayBuffer")],
                     returns: .boolean
                 ))
             ],
@@ -392,7 +392,7 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             name: "WebAssembly.Instance",
             instanceType: .object(ofGroup: "WebAssembly.Instance"),
             properties: [
-                "exports": .object(),
+                "exports": .object()
             ],
             methods: [:]
         ))
@@ -402,10 +402,13 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             name: "WebAssembly.Memory",
             instanceType: .object(ofGroup: "WebAssembly.Memory"),
             properties: [
-                "buffer": .object(ofGroup: "ArrayBuffer"),
+                "buffer": .object(ofGroup: "ArrayBuffer")
             ],
             methods: [
-                "grow": [.integer] => .integer
+                "grow": Signature(
+                    expects: [.integer],
+                    returns: .integer
+                )
             ]
         ))
 
@@ -414,12 +417,21 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             name: "WebAssembly.Table",
             instanceType: .object(ofGroup: "WebAssembly.Table"),
             properties: [
-                "length": .integer,
+                "length": .integer
             ],
             methods: [
-                "get": [.integer] => .function(),
-                "set": [.integer, .function()] => .undefined,
-                "grow": [.integer] => .integer
+                "get": Signature(
+                    expects: [.integer],
+                    returns: .function()
+                ),
+                "set": Signature(
+                    expects: [.integer, .function()],
+                    returns: .undefined
+                ),
+                "grow": Signature(
+                    expects: [.integer],
+                    returns: .integer
+                )
             ]
         ))
     }
