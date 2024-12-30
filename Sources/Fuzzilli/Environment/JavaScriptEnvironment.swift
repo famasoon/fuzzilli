@@ -635,75 +635,32 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
                     returns: .object(ofGroup: "Worker")
                 )))
 
-        // WebAssemblyのバイナリデータを表す定数を追加
-        let wasmBinaryData: [UInt8] = [
-            0x00, 0x61, 0x73, 0x6d,  // magic number
-            0x01, 0x00, 0x00, 0x00,  // version
-            0x01, 0x04, 0x01, 0x60, 0x00, 0x00,  // type section
-            0x02, 0x07, 0x01, 0x01, 0x6d, 0x01, 0x66, 0x00, 0x00,  // import section
-            0x07, 0x08, 0x01, 0x04, 0x6d, 0x61, 0x69, 0x6e, 0x00, 0x00,  // export section
-        ]
+        // WebAssemblyのバイナリデータは直接使用しないので削除
+        // let wasmBinaryData: [UInt8] = [ ... ] を削除
 
-        // WebAssembly関連のメソッドシグネチャを追加
-        let wasmInstanceSignature = Signature(
-            expects: [
-                Parameter.object(ofGroup: "WebAssembly.Module"),
-                Parameter.object(withProperties: ["m"]) // シンプルに文字列の配列として指定
-            ],
-            returns: .object(ofGroup: "WebAssembly.Instance")
-        )
-
-        // WebAssembly.Module, Instance, Memory, Tableのコンストラクタを登録する前に
-        // シグネチャを定義
-        let wasmModuleSignature = Signature(
-            expects: [Parameter.object(ofGroup: "Uint8Array")],
-            returns: .object(ofGroup: "WebAssembly.Module")
-        )
-
-        // WebAssembly.Module, Instance, Memory, Tableのコンストラクタを登録
-        registerBuiltin("WebAssembly.Module", ofType: .constructor(wasmModuleSignature))
-        registerBuiltin("WebAssembly.Instance", ofType: .constructor(wasmInstanceSignature))
-
-        // WebAssemblyのグループ定義を追加
-        registerObjectGroup(
-            ObjectGroup(
-                name: "WebAssembly.Module",
-                instanceType: .object(ofGroup: "WebAssembly.Module"),
-                properties: [:],
-                methods: [:]
-            ))
-
-        registerObjectGroup(
-            ObjectGroup(
-                name: "WebAssembly.Instance",
-                instanceType: .object(ofGroup: "WebAssembly.Instance"),
-                properties: ["exports": .object()],
-                methods: [:]
-            ))
-
-        // WebAssembly関連の型定義を追加
-        let wasmModuleType = Type.object(withProperties: [
+        // WebAssembly関連の型定義を追加し、ObjectGroupの登録に使用
+        let wasmModuleType = ILType.object(withProperties: [
             "exports",
             "customSections",
         ])
 
-        let wasmInstanceType = Type.object(withProperties: [
+        let wasmInstanceType = ILType.object(withProperties: [
             "exports",
             "memory",
         ])
 
-        let wasmMemoryType = Type.object(withProperties: [
+        let wasmMemoryType = ILType.object(withProperties: [
             "buffer",
             "grow",
         ])
 
-        let wasmTableType = Type.object(withProperties: [
+        let wasmTableType = ILType.object(withProperties: [
             "length",
             "grow",
         ])
 
-        // WebAssembly名前空間の定義
-        let jsWebAssemblyObject = ObjectGroup(
+        // WebAssembly名前空間のObjectGroupを登録
+        registerObjectGroup(ObjectGroup(
             name: "WebAssembly",
             instanceType: .object(ofGroup: "WebAssembly"),
             properties: [
@@ -714,7 +671,36 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
                 "validate": .function(),
             ],
             methods: [:]
-        )
+        ))
+
+        // 各WebAssemblyコンポーネントのObjectGroupを登録
+        registerObjectGroup(ObjectGroup(
+            name: "WebAssembly.Module",
+            instanceType: wasmModuleType,
+            properties: ["exports": .object(), "customSections": .object()],
+            methods: [:]
+        ))
+
+        registerObjectGroup(ObjectGroup(
+            name: "WebAssembly.Instance",
+            instanceType: wasmInstanceType,
+            properties: ["exports": .object(), "memory": .object()],
+            methods: [:]
+        ))
+
+        registerObjectGroup(ObjectGroup(
+            name: "WebAssembly.Memory",
+            instanceType: wasmMemoryType,
+            properties: ["buffer": .object(), "grow": .function()],
+            methods: [:]
+        ))
+
+        registerObjectGroup(ObjectGroup(
+            name: "WebAssembly.Table",
+            instanceType: wasmTableType,
+            properties: ["length": .integer, "grow": .function()],
+            methods: [:]
+        ))
     }
 
     override func initialize() {
