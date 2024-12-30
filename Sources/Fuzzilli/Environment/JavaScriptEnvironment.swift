@@ -349,10 +349,21 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             name: "WebAssembly",
             instanceType: .object(ofGroup: "WebAssembly"),
             properties: [
+                // Module constructor: accepts binary data
+                "Module": .constructor([
+                    .oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))
+                ] => .object(ofGroup: "WebAssembly.Module")),
+
+                // Instance constructor: accepts module and imports
+                "Instance": .constructor([
+                    .object(ofGroup: "WebAssembly.Module"),
+                    .opt(.object())  // Optional imports object
+                ] => .object(ofGroup: "WebAssembly.Instance")),
+
                 // Memory constructor: accepts memory descriptor
                 "Memory": .constructor([
                     .object(withProperties: [
-                        "initial",    // プロパティ名のみを指定
+                        "initial",
                         "maximum",
                         "shared"
                     ])
@@ -367,10 +378,10 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
                     ])
                 ] => .object(ofGroup: "WebAssembly.Table")),
 
-                // 他のプロパティは変更なし
-                "Module": .constructor(),
-                "Instance": .constructor(),
-                "validate": .function()
+                // Static method
+                "validate": .function([
+                    .oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))
+                ] => .boolean)
             ],
             methods: [:]
         )
