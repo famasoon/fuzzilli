@@ -345,31 +345,37 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
 
     private func registerWebAssemblyTypes() {
         // WebAssemblyのグループを登録
-        registerObjectGroup(ObjectGroup(
+        let webAssemblyGroup = ObjectGroup(
             name: "WebAssembly",
             instanceType: .object(ofGroup: "WebAssembly"),
             properties: [
-                "Module": .constructor(
-                    [.object(ofGroup: "Uint8Array")] => .object(ofGroup: "WebAssembly.Module")
-                ),
-                "Instance": .constructor(
-                    [
-                        .object(ofGroup: "WebAssembly.Module"),
-                        .opt(.object())  // importObject is optional
-                    ] => .object(ofGroup: "WebAssembly.Instance")
-                ),
-                "Memory": .constructor(
-                    [.object(withProperties: ["initial"])] => .object(ofGroup: "WebAssembly.Memory")
-                ),
-                "Table": .constructor(
-                    [.object(withProperties: ["initial", "element"])] => .object(ofGroup: "WebAssembly.Table")
-                ),
-                "validate": .function(
-                    [.object(ofGroup: "Uint8Array")] => .boolean
-                )
+                // Memory constructor: accepts memory descriptor
+                "Memory": .constructor([
+                    .object(withProperties: [
+                        "initial",    // プロパティ名のみを指定
+                        "maximum",
+                        "shared"
+                    ])
+                ] => .object(ofGroup: "WebAssembly.Memory")),
+
+                // Table constructor: accepts table descriptor
+                "Table": .constructor([
+                    .object(withProperties: [
+                        "initial",
+                        "maximum", 
+                        "element"
+                    ])
+                ] => .object(ofGroup: "WebAssembly.Table")),
+
+                // 他のプロパティは変更なし
+                "Module": .constructor(),
+                "Instance": .constructor(),
+                "validate": .function()
             ],
             methods: [:]
-        ))
+        )
+
+        registerObjectGroup(webAssemblyGroup)
 
         // WebAssembly.Module
         registerObjectGroup(ObjectGroup(
