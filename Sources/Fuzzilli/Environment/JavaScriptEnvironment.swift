@@ -482,7 +482,7 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
         let wasmModuleType = ILType.object(withProperties: [
             "exports",
             "customSections"
-        ], withMethods: [])
+        ], withMethods: ["validate"])
 
         let wasmInstanceType = ILType.object(withProperties: [
             "exports",
@@ -510,23 +510,23 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
 
         // 各コンストラクタの登録（シグネチャ付き）
         registerBuiltin("WebAssembly.Module", ofType: ILType.constructor(Signature(
-            expects: [Parameter.object()],
-            returns: wasmModuleType
+            expects: [Parameter.object(ofGroup: "Uint8Array")],
+            returns: .object(ofGroup: "WebAssembly.Module")
         )))
 
         registerBuiltin("WebAssembly.Instance", ofType: ILType.constructor(Signature(
             expects: [Parameter.object(ofGroup: "WebAssembly.Module"), Parameter.object()],
-            returns: wasmInstanceType
+            returns: .object(ofGroup: "WebAssembly.Instance")
         )))
 
         registerBuiltin("WebAssembly.Memory", ofType: ILType.constructor(Signature(
             expects: [Parameter.object(withProperties: ["initial", "maximum"])],
-            returns: wasmMemoryType
+            returns: .object(ofGroup: "WebAssembly.Memory")
         )))
 
         registerBuiltin("WebAssembly.Table", ofType: ILType.constructor(Signature(
             expects: [Parameter.object(withProperties: ["initial", "element"])],
-            returns: wasmTableType
+            returns: .object(ofGroup: "WebAssembly.Table")
         )))
 
         // WebAssemblyのグループ登録
