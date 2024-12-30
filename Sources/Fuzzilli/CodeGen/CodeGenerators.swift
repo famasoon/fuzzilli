@@ -1949,18 +1949,19 @@ public let CodeGenerators: [CodeGenerator] = [
             let table = b.construct(b.getProperty("Table", of: WebAssembly), withArgs: [tableDesc])
             
             // テーブルを操作
-            withEqualProbability({
+            let result = withEqualProbability({
                 // テーブルを拡張
-                b.callMethod("grow", on: table, withArgs: [b.loadInt(1)])
+                return b.callMethod("grow", on: table, withArgs: [b.loadInt(1)])
             }, {
                 // テーブルにアクセス
-                b.callMethod("get", on: table, withArgs: [b.loadInt(0)])
+                return b.callMethod("get", on: table, withArgs: [b.loadInt(0)])
             }, {
                 // テーブルに値を設定
                 let func_ = b.buildPlainFunction(with: .parameters(n: 0)) { _ in 
-                    b.loadInt(42)
+                    let val = b.loadInt(42)
+                    b.doReturn(val)
                 }
-                b.callMethod("set", on: table, withArgs: [b.loadInt(0), func_])
+                return b.callMethod("set", on: table, withArgs: [b.loadInt(0), func_])
             })
             
         }, catchBody: { error in
