@@ -357,27 +357,27 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             properties: [
                 // Module constructor
                 "Module": .constructor(
-                    [.oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))] => moduleType
+                    [Parameter.oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))] => moduleType
                 ),
 
                 // Instance constructor
                 "Instance": .constructor(
-                    [.object(ofGroup: "WebAssembly.Module"), .opt(.object())] => instanceType
+                    [Parameter.object(ofGroup: "WebAssembly.Module"), Parameter.opt(.object())] => instanceType
                 ),
 
                 // Memory constructor
                 "Memory": .constructor(
-                    [.object(withProperties: ["initial", "maximum", "shared"])] => memoryType
+                    [Parameter.object(withProperties: ["initial", "maximum", "shared"])] => memoryType
                 ),
 
                 // Table constructor
                 "Table": .constructor(
-                    [.object(withProperties: ["initial", "maximum", "element"])] => tableType
+                    [Parameter.object(withProperties: ["initial", "maximum", "element"])] => tableType
                 ),
 
                 // Static method
                 "validate": .function(
-                    [.oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))] => .boolean
+                    [Parameter.oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))] => .boolean
                 )
             ],
             methods: [:]
