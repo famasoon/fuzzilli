@@ -344,54 +344,51 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
     )
 
     private func registerWebAssemblyTypes() {
+        // 各WebAssemblyコンポーネントの型を定義
+        let moduleType: ILType = .object(ofGroup: "WebAssembly.Module")
+        let instanceType: ILType = .object(ofGroup: "WebAssembly.Instance")
+        let memoryType: ILType = .object(ofGroup: "WebAssembly.Memory")
+        let tableType: ILType = .object(ofGroup: "WebAssembly.Table")
+
         // WebAssemblyのグループを登録
         let webAssemblyGroup = ObjectGroup(
             name: "WebAssembly",
             instanceType: .object(ofGroup: "WebAssembly"),
             properties: [
                 // Module constructor
-                "Module": .functionAndConstructor([
-                    .oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))
-                ] => .object(ofGroup: "WebAssembly.Module")),
+                "Module": .constructor(
+                    [.oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))] => moduleType
+                ),
 
                 // Instance constructor
-                "Instance": .functionAndConstructor([
-                    .object(ofGroup: "WebAssembly.Module"),
-                    .opt(.object())
-                ] => .object(ofGroup: "WebAssembly.Instance")),
+                "Instance": .constructor(
+                    [.object(ofGroup: "WebAssembly.Module"), .opt(.object())] => instanceType
+                ),
 
                 // Memory constructor
-                "Memory": .functionAndConstructor([
-                    .object(withProperties: [
-                        "initial",
-                        "maximum",
-                        "shared"
-                    ])
-                ] => .object(ofGroup: "WebAssembly.Memory")),
+                "Memory": .constructor(
+                    [.object(withProperties: ["initial", "maximum", "shared"])] => memoryType
+                ),
 
                 // Table constructor
-                "Table": .functionAndConstructor([
-                    .object(withProperties: [
-                        "initial",
-                        "maximum", 
-                        "element"
-                    ])
-                ] => .object(ofGroup: "WebAssembly.Table")),
+                "Table": .constructor(
+                    [.object(withProperties: ["initial", "maximum", "element"])] => tableType
+                ),
 
                 // Static method
-                "validate": .function([
-                    .oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))
-                ] => .boolean)
+                "validate": .function(
+                    [.oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))] => .boolean
+                )
             ],
             methods: [:]
         )
 
         registerObjectGroup(webAssemblyGroup)
 
-        // WebAssembly.Module
+        // 各コンポーネントのObjectGroupを登録
         registerObjectGroup(ObjectGroup(
             name: "WebAssembly.Module",
-            instanceType: .object(ofGroup: "WebAssembly.Module"),
+            instanceType: moduleType,
             properties: [:],
             methods: [
                 "exports": [] => .jsArray,
@@ -400,35 +397,24 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             ]
         ))
 
-        // WebAssembly.Instance
         registerObjectGroup(ObjectGroup(
             name: "WebAssembly.Instance",
-            instanceType: .object(ofGroup: "WebAssembly.Instance"),
-            properties: [
-                "exports": .object()
-            ],
+            instanceType: instanceType,
+            properties: ["exports": .object()],
             methods: [:]
         ))
 
-        // WebAssembly.Memory
         registerObjectGroup(ObjectGroup(
             name: "WebAssembly.Memory",
-            instanceType: .object(ofGroup: "WebAssembly.Memory"),
-            properties: [
-                "buffer": .object(ofGroup: "ArrayBuffer")
-            ],
-            methods: [
-                "grow": [.integer] => .integer
-            ]
+            instanceType: memoryType,
+            properties: ["buffer": .object(ofGroup: "ArrayBuffer")],
+            methods: ["grow": [.integer] => .integer]
         ))
 
-        // WebAssembly.Table
         registerObjectGroup(ObjectGroup(
             name: "WebAssembly.Table",
-            instanceType: .object(ofGroup: "WebAssembly.Table"),
-            properties: [
-                "length": .integer
-            ],
+            instanceType: tableType,
+            properties: ["length": .integer],
             methods: [
                 "get": [.integer] => .function(),
                 "set": [.integer, .function()] => .undefined,
