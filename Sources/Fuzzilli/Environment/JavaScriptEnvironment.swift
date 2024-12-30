@@ -557,6 +557,37 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             properties: [:],
             methods: ["grow": Signature(expects: [.integer], returns: .integer)]
         ))
+
+        // TypedArrayのコンストラクタ定義
+        registerBuiltin("Uint8Array", ofType: ILType.constructor(Signature(
+            expects: [Parameter.object(ofGroup: "ArrayBuffer")],
+            returns: .object(ofGroup: "Uint8Array")
+        )))
+
+        // Workerのグループとコンストラクタ定義
+        registerObjectGroup(ObjectGroup(
+            name: "Worker",
+            instanceType: ILType.object(withProperties: [
+                "onmessage",
+                "onerror"
+            ], withMethods: [
+                "terminate",
+                "postMessage"
+            ]),
+            properties: [
+                "onmessage": .function(),
+                "onerror": .function()
+            ],
+            methods: [
+                "terminate": Signature(expects: [], returns: .undefined),
+                "postMessage": Signature(expects: [.anything], returns: .undefined)
+            ]
+        ))
+
+        registerBuiltin("Worker", ofType: ILType.constructor(Signature(
+            expects: [Parameter.string],
+            returns: .object(ofGroup: "Worker")
+        )))
     }
 
     override func initialize() {
