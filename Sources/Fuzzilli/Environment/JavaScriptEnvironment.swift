@@ -350,26 +350,26 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             instanceType: .object(ofGroup: "WebAssembly"),
             properties: [
                 "Module": .constructor(Signature(
-                    expects: [.object(ofGroup: "ArrayBuffer")],
+                    expects: [Parameter.object(ofGroup: "Uint8Array")],  // ArrayBufferまたはUint8Array
                     returns: .object(ofGroup: "WebAssembly.Module")
                 )),
                 "Instance": .constructor(Signature(
                     expects: [
-                        .object(ofGroup: "WebAssembly.Module"),
-                        .object(withProperties: ["imports"])
+                        Parameter.object(ofGroup: "WebAssembly.Module"),
+                        Parameter.opt(.object())  // importObject is optional
                     ],
                     returns: .object(ofGroup: "WebAssembly.Instance")
                 )),
                 "Memory": .constructor(Signature(
-                    expects: [.object(withProperties: ["initial", "maximum", "shared"])],
+                    expects: [Parameter.object(withProperties: ["initial"])],  // maximum and shared are optional
                     returns: .object(ofGroup: "WebAssembly.Memory")
                 )),
                 "Table": .constructor(Signature(
-                    expects: [.object(withProperties: ["initial", "maximum", "element"])],
+                    expects: [Parameter.object(withProperties: ["initial", "element"])],  // maximum is optional
                     returns: .object(ofGroup: "WebAssembly.Table")
                 )),
                 "validate": .function(Signature(
-                    expects: [.object(ofGroup: "ArrayBuffer")],
+                    expects: [Parameter.object(ofGroup: "Uint8Array")],  // ArrayBufferまたはUint8Array
                     returns: .boolean
                 ))
             ],
@@ -380,11 +380,12 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
         registerObjectGroup(ObjectGroup(
             name: "WebAssembly.Module",
             instanceType: .object(ofGroup: "WebAssembly.Module"),
-            properties: [
-                "exports": .jsArray,
-                "customSections": .jsArray
-            ],
-            methods: [:]
+            properties: [:],
+            methods: [
+                "exports": [] => .jsArray,
+                "imports": [] => .jsArray,
+                "customSections": [.string] => .jsArray
+            ]
         ))
 
         // WebAssembly.Instance
@@ -405,10 +406,7 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
                 "buffer": .object(ofGroup: "ArrayBuffer")
             ],
             methods: [
-                "grow": Signature(
-                    expects: [.integer],
-                    returns: .integer
-                )
+                "grow": [.integer] => .integer
             ]
         ))
 
@@ -420,20 +418,14 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
                 "length": .integer
             ],
             methods: [
-                "get": Signature(
-                    expects: [.integer],
-                    returns: .function()
-                ),
-                "set": Signature(
-                    expects: [.integer, .function()],
-                    returns: .undefined
-                ),
-                "grow": Signature(
-                    expects: [.integer],
-                    returns: .integer
-                )
+                "get": [.integer] => .function(),  // nullableな戻り値は.function()として扱う
+                "set": [.integer, .opt(.function())] => .undefined,  // nullableな引数は.function()として扱う
+                "grow": [.integer] => .integer
             ]
         ))
+
+        // WebAssemblyのビルトインを登録
+        registerBuiltin("WebAssembly", ofType: .object(ofGroup: "WebAssembly"))
     }
 
     public init(additionalBuiltins: [String: ILType] = [:], additionalObjectGroups: [ObjectGroup] = []) {
