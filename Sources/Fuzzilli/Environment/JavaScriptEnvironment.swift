@@ -482,22 +482,22 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
         let wasmModuleType = ILType.object(withProperties: [
             "exports",
             "customSections"
-        ])
+        ], withMethods: [])
 
         let wasmInstanceType = ILType.object(withProperties: [
             "exports",
             "memory"
-        ])
+        ], withMethods: [])
 
         let wasmMemoryType = ILType.object(withProperties: [
             "buffer",
             "grow"
-        ])
+        ], withMethods: ["grow"])
 
         let wasmTableType = ILType.object(withProperties: [
             "length",
             "grow"
-        ])
+        ], withMethods: ["grow"])
 
         // WebAssembly名前空間の定義
         registerBuiltin("WebAssembly", ofType: ILType.object(withProperties: [
@@ -506,13 +506,28 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             "Memory",
             "Table",
             "validate"
-        ]))
+        ], withMethods: ["validate"]))
 
-        // 各コンストラクタの登録
-        registerBuiltin("WebAssembly.Module", ofType: ILType.constructor())
-        registerBuiltin("WebAssembly.Instance", ofType: ILType.constructor())
-        registerBuiltin("WebAssembly.Memory", ofType: ILType.constructor())
-        registerBuiltin("WebAssembly.Table", ofType: ILType.constructor())
+        // 各コンストラクタの登録（シグネチャ付き）
+        registerBuiltin("WebAssembly.Module", ofType: ILType.constructor(Signature(
+            expects: [Parameter.object()],
+            returns: wasmModuleType
+        )))
+
+        registerBuiltin("WebAssembly.Instance", ofType: ILType.constructor(Signature(
+            expects: [Parameter.object(ofGroup: "WebAssembly.Module"), Parameter.object()],
+            returns: wasmInstanceType
+        )))
+
+        registerBuiltin("WebAssembly.Memory", ofType: ILType.constructor(Signature(
+            expects: [Parameter.object(withProperties: ["initial", "maximum"])],
+            returns: wasmMemoryType
+        )))
+
+        registerBuiltin("WebAssembly.Table", ofType: ILType.constructor(Signature(
+            expects: [Parameter.object(withProperties: ["initial", "element"])],
+            returns: wasmTableType
+        )))
 
         // WebAssemblyのグループ登録
         registerObjectGroup(ObjectGroup(
