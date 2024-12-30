@@ -196,14 +196,12 @@ public let codeGeneratorWeights: [String: Int] = [
     "ApiFunctionCallGenerator": 15,
     "VoidGenerator": 1,
 
-    // WASMジェネレータの重み
-    "WasmGenerator": 50,  // モジュールのインスタンス化は最重要
-    "WasmMemoryOperationsGenerator": 40,  // メモリ操作は重要度が高い
-    "WasmTableGenerator": 30,  // テーブル操作
-
-    // WebAssembly関連
-    "BasicWasmGenerator": 20,
-    "WasmMemoryGenerator": 10,
-    "WebAssemblyModuleGenerator": 25,  // 新しいWebAssemblyモジュールジェネレータの重み
-    "WebAssemblyMemoryGenerator": 15,  // 追加：WebAssemblyメモリジェネレータの重み
+    // WebAssembly関連のジェネレータ
+    "WasmInstanceGenerator": 50,        // WebAssembly.Instance
+    "WasmModuleGenerator": 40,         // WebAssembly.Module
+    "WasmMemoryGenerator": 30,         // WebAssembly.Memory
+    "WasmTableGenerator": 30,          // WebAssembly.Table
+    "WasmGlobalGenerator": 20,         // WebAssembly.Global
+    "WasmMemoryOperationsGenerator": 40,
+    "WasmTableOperationsGenerator": 30,
 ]
