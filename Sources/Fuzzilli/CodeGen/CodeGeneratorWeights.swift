@@ -13,7 +13,7 @@
 // limitations under the License.
 
 /// Default weights for the builtin code generators.
-public let codeGeneratorWeights = [
+public let codeGeneratorWeights: [String: Int] = [
     // Value generators. These are used to bootstrap code
     // generation and therefore control the types of variables
     // available at the start of code generation.
@@ -200,4 +200,8 @@ public let codeGeneratorWeights = [
     "WasmGenerator": 50,  // モジュールのインスタンス化は最重要
     "WasmMemoryOperationsGenerator": 40,  // メモリ操作は重要度が高い
     "WasmTableGenerator": 30,  // テーブル操作
+
+    // WebAssembly関連
+    "BasicWasmGenerator": 20,
+    "WasmMemoryGenerator": 10
 ]

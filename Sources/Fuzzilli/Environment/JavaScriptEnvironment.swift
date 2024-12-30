@@ -477,6 +477,71 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
                     "subarray": [.opt(.integer), .opt(.integer)] => .object(),
                 ]
             ))
+
+        // WebAssembly関連の型定義
+        let wasmModuleType = ILType.object(withProperties: [
+            "exports",
+            "customSections"
+        ])
+
+        let wasmInstanceType = ILType.object(withProperties: [
+            "exports",
+            "memory"
+        ])
+
+        let wasmMemoryType = ILType.object(withProperties: [
+            "buffer",
+            "grow"
+        ])
+
+        let wasmTableType = ILType.object(withProperties: [
+            "length",
+            "grow"
+        ])
+
+        // WebAssembly名前空間の定義
+        registerBuiltin("WebAssembly", ofType: ILType.object(withProperties: [
+            "Module",
+            "Instance",
+            "Memory",
+            "Table",
+            "validate"
+        ]))
+
+        // 各コンストラクタの登録
+        registerBuiltin("WebAssembly.Module", ofType: ILType.constructor())
+        registerBuiltin("WebAssembly.Instance", ofType: ILType.constructor())
+        registerBuiltin("WebAssembly.Memory", ofType: ILType.constructor())
+        registerBuiltin("WebAssembly.Table", ofType: ILType.constructor())
+
+        // WebAssemblyのグループ登録
+        registerObjectGroup(ObjectGroup(
+            name: "WebAssembly.Module",
+            instanceType: wasmModuleType,
+            properties: [:],
+            methods: [:]
+        ))
+
+        registerObjectGroup(ObjectGroup(
+            name: "WebAssembly.Instance",
+            instanceType: wasmInstanceType,
+            properties: [:],
+            methods: [:]
+        ))
+
+        registerObjectGroup(ObjectGroup(
+            name: "WebAssembly.Memory",
+            instanceType: wasmMemoryType,
+            properties: [:],
+            methods: ["grow": Signature(expects: [.integer], returns: .integer)]
+        ))
+
+        registerObjectGroup(ObjectGroup(
+            name: "WebAssembly.Table",
+            instanceType: wasmTableType,
+            properties: [:],
+            methods: ["grow": Signature(expects: [.integer], returns: .integer)]
+        ))
     }
 
     override func initialize() {
