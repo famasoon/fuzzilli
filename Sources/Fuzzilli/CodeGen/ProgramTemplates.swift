@@ -561,5 +561,99 @@ public let ProgramTemplates = [
         // エクスポートされた関数を呼び出し
         let func_ = b.getWasmExport(instance, "test_func")
         b.callFunction(func_, withArgs: [b.loadInt(42)])
+    },
+
+    ProgramTemplate("WasmMemoryFuzzer") { b in
+        b.buildTryCatchFinally(tryBody: {
+            let WebAssembly = b.loadBuiltin("WebAssembly")
+            
+            // メモリの作成
+            let memoryDesc = b.createObject(with: [
+                "initial": b.loadInt(1),
+                "maximum": b.loadInt(10),
+                "shared": b.loadBool(true)
+            ])
+            let memory = b.construct(b.getProperty("Memory", of: WebAssembly), withArgs: [memoryDesc])
+            
+            // 様々な型付き配列でメモリにアクセス
+            let views = [
+                ("Int8Array", 1),
+                ("Uint8Array", 1),
+                ("Int16Array", 2),
+                ("Uint16Array", 2),
+                ("Int32Array", 4),
+                ("Float32Array", 4),
+                ("Float64Array", 8)
+            ]
+            
+            for (viewType, size) in views {
+                let view = b.construct(b.loadBuiltin(viewType), withArgs: [
+                    b.getProperty("buffer", of: memory)
+                ])
+                
+                // メモリの異なる位置で読み書き
+                let offsets = [0, size-1, 1024-size, 65536-size]
+                for offset in offsets {
+                    b.callMethod("set", on: view, withArgs: [
+                        b.loadInt(Int64(offset)),
+                        b.loadInt(Int64.random(in: Int64.min...Int64.max))
+                    ])
+                }
+            }
+            
+            // メモリの拡張とエッジケースのテスト
+            b.callMethod("grow", on: memory, withArgs: [b.loadInt(1)])
+            
+        }, catchBody: { error in
+            b.loadUndefined()
+        })
+    },
+
+    ProgramTemplate("WasmImportExportFuzzer") { b in
+        b.buildTryCatchFinally(tryBody: {
+            let WebAssembly = b.loadBuiltin("WebAssembly")
+            
+            // WASMモジュールを作成
+            let wasmBytes: [Int64] = [
+                0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,  // マジックナンバーとバージョン
+                0x01, 0x04, 0x01, 0x60, 0x00, 0x00,              // Type Section
+                0x02, 0x07, 0x01, 0x01, 0x6d, 0x01, 0x66, 0x00, 0x00  // Import Section
+            ]
+            let bytes = b.createIntArray(with: wasmBytes)
+            let uint8Array = b.construct(b.loadBuiltin("Uint8Array"), withArgs: [bytes])
+            let module = b.construct(b.getProperty("Module", of: WebAssembly), withArgs: [uint8Array])
+            
+            // 複雑なインポートオブジェクトの作成
+            let importObj = b.createObject(with: [
+                "env": b.createObject(with: [
+                    "memory": b.construct(b.getProperty("Memory", of: WebAssembly), 
+                                       withArgs: [b.loadInt(1)]),
+                    "table": b.construct(b.getProperty("Table", of: WebAssembly),
+                                      withArgs: [b.loadInt(10), b.loadString("anyfunc")]),
+                    "log": b.buildPlainFunction(with: .parameters(n: 1)) { args in
+                        b.doReturn(args[0])
+                    },
+                    "abort": b.buildPlainFunction(with: .parameters(n: 0)) { _ in
+                        b.loadUndefined()  // throwErrorの代わりに
+                    }
+                ])
+            ])
+            
+            // インスタンス化とエクスポート関数の実行
+            let instance = b.instantiateWasmModule(module, withImports: [importObj])
+            let exports = b.getProperty("exports", of: instance)
+            
+            // エクスポートされた関数を様々な方法で呼び出し
+            let exportNames = ["memory", "table", "globals", "functions"]
+            for name in exportNames {
+                let export = b.getProperty(name, of: exports)
+                if probability(0.5) {
+                    b.callFunction(export, withArgs: [b.loadInt(42)])
+                }
+            }
+            
+        }, catchBody: { error in
+            b.loadUndefined()
+        })
     }
 ]

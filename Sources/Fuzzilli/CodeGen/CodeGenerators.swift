@@ -2080,6 +2080,54 @@ public let CodeGenerators: [CodeGenerator] = [
         }, catchBody: { error in
             b.loadUndefined()
         })
+    },
+
+    CodeGenerator("WasmModuleGenerator") { b in
+        b.buildTryCatchFinally(tryBody: {
+            let WebAssembly = b.loadBuiltin("WebAssembly")
+            
+            // より複雑なWASMモジュールを生成
+            let wasmBytes: [Int64] = [
+                // マジックナンバーとバージョン
+                0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+                
+                // Type Section
+                0x01, 0x07, 0x01, 0x60, 0x02, 0x7F, 0x7F, 0x01, 0x7F,
+                
+                // Function Section
+                0x03, 0x02, 0x01, 0x00,
+                
+                // Export Section
+                0x07, 0x07, 0x01, 0x03, 0x61, 0x64, 0x64, 0x00, 0x00  // "add"をエクスポート
+            ]
+            
+            let bytes = b.createIntArray(with: wasmBytes)
+            let uint8Array = b.construct(b.loadBuiltin("Uint8Array"), withArgs: [bytes])
+            
+            // モジュールの作成と検証
+            b.callMethod("validate", on: WebAssembly, withArgs: [uint8Array])
+            let module = b.construct(b.getProperty("Module", of: WebAssembly), withArgs: [uint8Array])
+            
+            // インスタンス化と関数実行
+            let instance = b.instantiateWasmModule(module)
+            let exports = b.getProperty("exports", of: instance)
+            let add = b.getProperty("add", of: exports)
+            
+            // エッジケースでの関数呼び出し
+            let testCases = [
+                (0, 0),
+                (Int32.max, 1),
+                (Int32.min, -1),
+                (Int32.max, Int32.max)
+            ]
+            
+            for (a, b_) in testCases {
+                b.callFunction(add, withArgs: [b.loadInt(Int64(a)), b.loadInt(Int64(b_))])
+            }
+            
+        }, catchBody: { error in
+            b.loadUndefined()
+        })
     }
 ]
 
