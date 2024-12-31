@@ -204,4 +204,5 @@ public let codeGeneratorWeights: [String: Int] = [
     "WebAssemblyMemoryGenerator": 30,        // WebAssembly.Memoryの生成
     "WebAssemblyGenerator": 50,              // 完全なWebAssemblyワークフロー
     "WebAssemblyPromiseGenerator": 40,       // WebAssembly Promise APIのテスト
+    "WasmModuleGenerator": 45,               // より複雑なWASMモジュールの生成
 ]
