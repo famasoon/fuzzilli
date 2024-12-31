@@ -27,4 +27,6 @@ public let programTemplateWeights = [
     "WasmFunctionTest": 5,
     "WasmTableTest": 5,
     "WasmImportTest": 5,
+    "WasmMemoryFuzzer": 5,
+    "WasmImportExportFuzzer": 5
 ]
