@@ -2034,6 +2034,52 @@ public let CodeGenerators: [CodeGenerator] = [
         }, catchBody: { error in
             b.loadUndefined()
         })
+    },
+
+    CodeGenerator("WebAssemblyPromiseGenerator") { b in
+        b.buildTryCatchFinally(tryBody: {
+            let WebAssembly = b.loadBuiltin("WebAssembly")
+            
+            // 最小限のWASMモジュールのバイナリデータを作成
+            let wasmBytes: [Int64] = [
+                0x00, 0x61, 0x73, 0x6d,  // magic number
+                0x01, 0x00, 0x00, 0x00,  // version
+                0x01, 0x04, 0x01, 0x60, 0x00, 0x00,  // type section
+                0x02, 0x07, 0x01, 0x01, 0x6d, 0x01, 0x66, 0x00, 0x00,  // import section
+                0x07, 0x08, 0x01, 0x04, 0x6d, 0x61, 0x69, 0x6e, 0x00, 0x00  // export section
+            ].map { Int64($0) }
+            
+            let bytes = b.createIntArray(with: wasmBytes)
+            let uint8Array = b.construct(b.loadBuiltin("Uint8Array"), withArgs: [bytes])
+            
+            // インポートオブジェクトの作成
+            let importFunc = b.buildPlainFunction(with: .parameters(n: 0)) { _ in 
+                b.doReturn(b.loadInt(42))
+            }
+            let importObj = b.createObject(with: [
+                "m": b.createObject(with: [
+                    "f": importFunc
+                ])
+            ])
+            
+            // WebAssembly.instantiateを使用してPromiseを取得
+            let promise = b.callMethod("instantiate", on: WebAssembly, 
+                                     withArgs: [uint8Array, importObj])
+            
+            // Promiseの処理
+            b.callMethod("then", on: promise, withArgs: [
+                b.buildPlainFunction(with: .parameters(n: 1)) { args in
+                    let result = args[0]
+                    let instance = b.getProperty("instance", of: result)
+                    let exports = b.getProperty("exports", of: instance)
+                    let main = b.getProperty("main", of: exports)
+                    b.callFunction(main, withArgs: [])
+                }
+            ])
+            
+        }, catchBody: { error in
+            b.loadUndefined()
+        })
     }
 ]
 
