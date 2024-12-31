@@ -373,41 +373,46 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
                 // Static method
                 "validate": .function([
                     Parameter.oneof(.object(ofGroup: "ArrayBuffer"), .object(ofGroup: "TypedArray"))
-                ] => .boolean)
+                ] => .boolean),
+
+                // Streaming compilation methods
+                "compileStreaming": .function([Parameter.object(ofGroup: "Promise")] => .object(ofGroup: "Promise")),
+                "instantiateStreaming": .function([Parameter.object(ofGroup: "Promise"), Parameter.opt(.object())] => .object(ofGroup: "Promise"))
             ],
             methods: [:]
         )
 
         registerObjectGroup(webAssemblyGroup)
 
-        // WebAssembly.Moduleのグループを登録（重複を削除）
+        // WebAssembly.Moduleのグループを登録
         registerObjectGroup(ObjectGroup(
             name: "WebAssembly.Module",
             instanceType: .object(ofGroup: "WebAssembly.Module"),
             properties: [:],
             methods: [
-                // インスタンスメソッド
                 "customSections": [.object(ofGroup: "WebAssembly.Module"), .string] => .jsArray,
                 "exports": [.object(ofGroup: "WebAssembly.Module")] => .jsArray,
                 "imports": [.object(ofGroup: "WebAssembly.Module")] => .jsArray
             ]
         ))
 
-        // 他のWebAssemblyコンポーネントのグループを登録
+        // WebAssembly.Instanceのグループを登録
         registerObjectGroup(ObjectGroup(
-            name: "WebAssembly.Instance",
+            name: "WebAssembly.Instance", 
             instanceType: .object(ofGroup: "WebAssembly.Instance"),
             properties: ["exports": .object()],
             methods: [:]
         ))
 
+        // WebAssembly.Memoryのグループを登録
         registerObjectGroup(ObjectGroup(
             name: "WebAssembly.Memory",
-            instanceType: .object(ofGroup: "WebAssembly.Memory"),
+            instanceType: .object(ofGroup: "WebAssembly.Memory"), 
             properties: ["buffer": .object(ofGroup: "ArrayBuffer")],
             methods: ["grow": [.integer] => .integer]
         ))
 
+        // WebAssembly.Tableのグループを登録
         registerObjectGroup(ObjectGroup(
             name: "WebAssembly.Table",
             instanceType: .object(ofGroup: "WebAssembly.Table"),
