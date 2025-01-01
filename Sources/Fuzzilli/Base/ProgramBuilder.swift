@@ -1546,9 +1546,18 @@ public class ProgramBuilder {
                 state.totalRecursiveBlocksOfCurrentGenerator = nil
 
                 // Select a random generator and run it.
-                let generator = availableGenerators.randomElement()
-                buildLog?.startAction(generator.name)
-                run(generator)
+                let generator = { () -> CodeGenerator? in
+                    guard !availableGenerators.isEmpty else { return nil }
+                    return availableGenerators.randomElement()
+                }()
+                
+                // ジェネレーターが存在する場合のみ実行
+                if let generator = generator {
+                    buildLog?.startAction(generator.name)
+                    run(generator)
+                } else {
+                    buildLog?.startAction("unknown generator")
+                }
 
             case .splicing:
                 let program = fuzzer.corpus.randomElementForSplicing()
