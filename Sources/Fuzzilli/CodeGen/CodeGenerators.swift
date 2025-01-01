@@ -2492,7 +2492,81 @@ public let CodeGenerators: [CodeGenerator] = [
         }, catchBody: { error in
             b.loadUndefined()
         })
-    }
+    },
+
+    // エラートリガリングクラスジェネレーターの修正
+    RecursiveCodeGenerator("ErrorTriggeringClassGenerator") { b in
+        // エラークラスの基本構造を作成
+        let errorClass = b.buildClassDefinition(withSuperclass: b.loadBuiltin("Error")) { cls in
+            // コンストラクターを追加
+            cls.addConstructor(with: .parameters(n: 1)) { args in
+                let this = args[0]
+                let message = args[1]
+                
+                // スーパークラスのコンストラクターを呼び出し
+                b.callSuperConstructor(withArgs: [message])
+                
+                // カスタムプロパティを追加
+                b.setProperty("name", of: this, to: b.loadString("CustomError"))
+                
+                // エラー固有のプロパティを追加
+                withProbability(0.5) {
+                    b.setProperty("code", of: this, to: b.loadInt(b.randomInt()))
+                }
+            }
+            
+            // カスタムメソッドを追加
+            cls.addInstanceMethod("toString", with: .parameters(n: 0)) { args in
+                let this = args[0]
+                b.doReturn(b.getProperty("message", of: this))
+            }
+            
+            b.buildRecursive()
+        }
+        
+        // エラーインスタンスを生成して投げる
+        let errorInstance = b.construct(errorClass, withArgs: [b.loadString(b.randomString())])
+        b.buildTryCatchFinally(tryBody: {
+            b.throwException(errorInstance)
+        }, catchBody: { e in
+            // エラーハンドリング
+            b.buildRecursive()
+        })
+    },
+
+    // Maglev最適化ジェネレーターの修正
+    RecursiveCodeGenerator("MaglevOptimizationGenerator") { b in
+        // 最適化対象の関数を作成
+        let targetFunction = b.buildPlainFunction(with: .parameters(n: 2)) { args in
+            // 関数内で計算を実行
+            b.binary(args[0], args[1], with: .Add)
+            b.buildRecursive()
+            b.doReturn(b.randomVariable())
+        }
+        
+        // 最適化のためのホットループを作成
+        b.buildForLoop(i: { b.loadInt(0) }, 
+                      { i in b.compare(i, with: b.loadInt(1000), using: .lessThan) }, 
+                      { i in b.unary(.PostInc, i) }) { _ in
+            // 関数を繰り返し呼び出し
+            let args = b.randomArguments(forCalling: targetFunction)
+            b.callFunction(targetFunction, withArgs: args)
+        }
+        
+        // 最適化状態をチェック
+        if b.fuzzer.environment.has("%GetOptimizationStatus") {
+            let getOptStatus = b.loadBuiltin("%GetOptimizationStatus")
+            b.callFunction(getOptStatus, withArgs: [targetFunction])
+        }
+        
+        // デオプティマイズをトリガー
+        withProbability(0.3) {
+            if b.fuzzer.environment.has("%DeoptimizeFunction") {
+                let deopt = b.loadBuiltin("%DeoptimizeFunction")
+                b.callFunction(deopt, withArgs: [targetFunction])
+            }
+        }
+    },
 ]
 
 extension Array where Element == CodeGenerator {
