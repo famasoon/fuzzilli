@@ -2130,9 +2130,12 @@ public let CodeGenerators: [CodeGenerator] = [
         })
     },
 
-    // WebAssemblyのPromise APIをテストするジェネレータを追加
+    // WebAssemblyのPromise APIをテストするジェネレータを修正
     CodeGenerator("WasmPromiseAPIGenerator") { b in 
         b.buildTryCatchFinally(tryBody: {
+            // JSPIを有効化
+            b.callMethod("enableJSPI", on: b.getProperty("test", of: b.loadBuiltin("d8")))
+            
             let WebAssembly = b.loadBuiltin("WebAssembly")
             
             // 基本的なWASMモジュールのバイトコードを作成
@@ -2141,13 +2144,15 @@ public let CodeGenerators: [CodeGenerator] = [
                 0x01, 0x00, 0x00, 0x00,  // バージョン
                 0x01, 0x09, 0x02, 0x60, 0x00, 0x01, 0x7d, 0x60, 0x00, 0x01, 0x7d,  // Type section
                 0x02, 0x08, 0x01, 0x01, 0x6d, 0x02, 0x6a, 0x73, 0x00, 0x00,  // Import section
-                0x05, 0x03, 0x01, 0x00, 0x01,  // Memory section
-                0x07, 0x11, 0x02, 0x06, 0x6d, 0x65, 0x6d, 0x6f, 0x72, 0x79, 0x02, 0x00, 0x04, 0x6d, 0x61, 0x69, 0x6e, 0x00, 0x00  // Export section
+                0x07, 0x08, 0x01, 0x04, 0x6d, 0x61, 0x69, 0x6e, 0x00, 0x00,  // Export section
+                0x00, 0x19, 0x04, 0x6e, 0x61, 0x6d, 0x65,  // Name section
+                0x01, 0x07, 0x01, 0x00, 0x04, 0x6d, 0x61, 0x69, 0x6e,
+                0x02, 0x03, 0x01, 0x00, 0x00
             ].map { Int64($0) }
             
             // バイトコードからUint8Arrayを作成
-            let bytesArray = b.createIntArray(with: wasmBytes)
-            let uint8Array = b.construct(b.loadBuiltin("Uint8Array"), withArgs: [bytesArray])
+            let wasmArray = b.createIntArray(with: wasmBytes)
+            let uint8Array = b.construct(b.loadBuiltin("Uint8Array"), withArgs: [wasmArray])
             
             // モジュールを作成
             let module = b.construct(b.getProperty("Module", of: WebAssembly), withArgs: [uint8Array])
@@ -2162,11 +2167,8 @@ public let CodeGenerators: [CodeGenerator] = [
             ])
             
             // インスタンスを作成
-            let instance = b.instantiateWasmModule(module, withImports: [importObj])
-            
-            // 配列を作成してデバッグプリント
-            let array = b.createFloatArray(with: Array(repeating: 1.1, count: 43))
-            b.callMethod("DebugPrint", on: b.loadBuiltin("%"), withArgs: [array])
+            let instance = b.construct(b.getProperty("Instance", of: WebAssembly), 
+                                     withArgs: [module, importObj])
             
             // WebAssembly.promisingを使用
             let promising = b.getProperty("promising", of: WebAssembly)
