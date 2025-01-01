@@ -716,6 +716,22 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
             Parameter.object(ofGroup: "Promise"),
             Parameter.opt(.object())
         ] => .object(ofGroup: "Promise")))
+
+        // thisのグローバルオブジェクトの型を定義
+        let thisType = ILType.object(withProperties: [
+            "global",
+            "window",
+            "self"
+        ])
+
+        // %オブジェクトの型を定義
+        let percentType = ILType.object(withProperties: [
+            "OptimizeMaglevOnNextCall",
+            "PrepareFunctionForOptimization"
+        ])
+
+        registerBuiltin("this", ofType: thisType)
+        registerBuiltin("%", ofType: percentType)
     }
 
     override func initialize() {
