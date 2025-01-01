@@ -29,11 +29,12 @@ public let WasmCodeGenerators = [
             
             // メモリの作成
             let memoryDesc = b.createObject(with: [
-                "initial": b.loadInt(1)
+                "initial": b.loadInt(1),
+                "maximum": b.loadInt(10)
             ])
             let memory = b.construct(b.getProperty("Memory", of: WebAssembly), withArgs: [memoryDesc])
             
-            // メモリの操作
+            // メモリの拡張
             b.callMethod("grow", on: memory, withArgs: [b.loadInt(1)])
             
         }, catchBody: { error in
@@ -109,6 +110,78 @@ public let WasmCodeGenerators = [
             // 値の取得と設定
             b.callMethod("set", on: global, withArgs: [b.loadInt(100)])
             b.callMethod("get", on: global)
+            
+        }, catchBody: { error in
+            b.loadUndefined()
+        })
+    },
+    
+    // 不正なWasmバイナリをテストするジェネレーター
+    CodeGenerator("MalformedWasmGenerator") { b in
+        b.buildTryCatchFinally(tryBody: {
+            let WebAssembly = b.loadBuiltin("WebAssembly")
+            
+            // 不正なバイナリデータのパターン
+            let malformedPattern1 = b.createArray(with: [
+                b.loadInt(0x00), b.loadInt(0x61), b.loadInt(0x73), b.loadInt(0x00)
+            ])
+            
+            // 不正なバイナリでモジュールの作成を試みる
+            b.callMethod("instantiate", on: WebAssembly, withArgs: [malformedPattern1])
+            
+        }, catchBody: { error in
+            b.loadUndefined()
+        })
+    },
+    
+    // メモリ操作のストレステスト
+    CodeGenerator("WasmMemoryStressTest") { b in
+        b.buildTryCatchFinally(tryBody: {
+            let WebAssembly = b.loadBuiltin("WebAssembly")
+            
+            // ランダムなサイズのメモリを作成
+            let memoryDesc = b.createObject(with: [
+                "initial": b.loadInt(1),
+                "maximum": b.loadInt(10)
+            ])
+            let memory = b.construct(b.getProperty("Memory", of: WebAssembly), withArgs: [memoryDesc])
+            
+            // メモリの急激な拡張と縮小
+            for _ in 0..<5 {
+                b.callMethod("grow", on: memory, withArgs: [b.loadInt(1)])
+            }
+            
+        }, catchBody: { error in
+            b.loadUndefined()
+        })
+    },
+    
+    // 並行実行のストレステスト
+    CodeGenerator("WasmConcurrentStressTest") { b in
+        b.buildTryCatchFinally(tryBody: {
+            let WebAssembly = b.loadBuiltin("WebAssembly")
+            let Promise = b.loadBuiltin("Promise")
+            
+            // 複数の操作を同時に実行
+            let memory = b.construct(b.getProperty("Memory", of: WebAssembly), withArgs: [
+                b.createObject(with: ["initial": b.loadInt(1)])
+            ])
+            let table = b.construct(b.getProperty("Table", of: WebAssembly), withArgs: [
+                b.createObject(with: [
+                    "element": b.loadString("anyfunc"),
+                    "initial": b.loadInt(1)
+                ])
+            ])
+            let global = b.construct(b.getProperty("Global", of: WebAssembly), withArgs: [
+                b.createObject(with: [
+                    "value": b.loadString("i32"),
+                    "mutable": b.loadBool(true)
+                ]),
+                b.loadInt(42)
+            ])
+            
+            // Promise.allを使用して並行実行
+            b.callMethod("all", on: Promise, withArgs: [b.createArray(with: [memory, table, global])])
             
         }, catchBody: { error in
             b.loadUndefined()
