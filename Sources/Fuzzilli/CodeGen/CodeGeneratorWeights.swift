@@ -209,4 +209,7 @@ public let codeGeneratorWeights: [String: Int] = [
 
     // エラー生成関連のジェネレータ
     "ErrorTriggeringClassGenerator": 30,  // エラーを引き起こすクラス定義用
+
+    // WebAssembly関連のジェネレータ
+    "SimpleWasmPromiseGenerator": 35,  // シンプルなWebAssembly Promiseテスト用
 ]
