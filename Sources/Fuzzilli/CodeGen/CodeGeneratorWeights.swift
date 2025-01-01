@@ -206,4 +206,7 @@ public let codeGeneratorWeights: [String: Int] = [
     "WebAssemblyPromiseGenerator": 40,       // WebAssembly Promise APIのテスト
     "WasmModuleGenerator": 45,               // より複雑なWASMモジュールの生成
     "WasmPromiseAPIGenerator": 40,  // WebAssembly Promise APIのテスト用
+
+    // エラー生成関連のジェネレータ
+    "ErrorTriggeringClassGenerator": 30,  // エラーを引き起こすクラス定義用
 ]

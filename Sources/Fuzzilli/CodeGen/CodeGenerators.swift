@@ -2181,6 +2181,29 @@ public let CodeGenerators: [CodeGenerator] = [
         }, catchBody: { error in
             b.loadUndefined()
         })
+    },
+
+    // エラーを引き起こすクラス定義のジェネレータを追加
+    CodeGenerator("ErrorTriggeringClassGenerator") { b in 
+        b.buildTryCatchFinally(tryBody: {
+            // クラス定義を開始
+            b.buildClassDefinition() { cls in  // buildClassDefinitionを使用
+                // エラーを引き起こすメソッドを作成
+                let errorMethod = b.buildPlainFunction(with: .parameters(n: 0)) { _ in 
+                    // 空の配列を作成
+                    let emptyArray = b.createArray(with: [])
+                    
+                    // 存在しないメソッドを呼び出してエラーを発生させる
+                    b.callMethod("trigger_error", on: emptyArray)
+                }
+                
+                // 計算されたプロパティ名として関数を使用
+                cls.addStaticComputedProperty(errorMethod)  // ClassDefinitionBuilderのメソッドを使用
+            }
+            
+        }, catchBody: { error in
+            b.loadUndefined()
+        })
     }
 ]
 
