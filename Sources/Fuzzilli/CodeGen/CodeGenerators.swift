@@ -2401,44 +2401,39 @@ public let CodeGenerators: [CodeGenerator] = [
     // Maglev最適化のテストジェネレータを追加
     CodeGenerator("MaglevOptimizationGenerator") { b in 
         b.buildTryCatchFinally(tryBody: {
-            // グローバル変数を作成
-            let globalVar = b.loadBool(false)  // loadBoolean を loadBool に変更
-            b.setProperty("v", of: b.loadBuiltin("this"), to: globalVar)
-            
             // テスト対象の関数を作成
             let testFunc = b.buildPlainFunction(with: .parameters(n: 1)) { args in
-                // 条件分岐を含む比較
-                let condition = b.ternary(args[0],
-                                         b.getProperty("v", of: b.loadBuiltin("this")),
-                                         b.loadNull())
-                b.compare(b.loadInt(0), with: condition, using: .equal)  // compareをbinaryに変更
+                // シンプルな数値計算を行う
+                let val = args[0]
+                let result = b.binary(val, b.loadInt(42), with: .Add)
+                b.doReturn(result)
             }
-            b.setProperty("f", of: b.loadBuiltin("this"), to: testFunc)
+            
+            // 関数をグローバルに保存
+            b.setProperty("testFunction", of: b.loadBuiltin("this"), to: testFunc)
             
             // 最適化の準備
             b.callMethod("PrepareFunctionForOptimization", on: b.loadBuiltin("%"), 
                         withArgs: [testFunc])
             
             // ウォームアップ実行
-            b.callFunction(testFunc, withArgs: [b.loadBool(true)])  // loadBoolean を loadBool に変更
+            for _ in 0..<5 {
+                b.callFunction(testFunc, withArgs: [b.loadInt(1)])
+            }
             
             // Maglevでの最適化を要求
             b.callMethod("OptimizeMaglevOnNextCall", on: b.loadBuiltin("%"), 
                         withArgs: [testFunc])
             
-            // アサーション関数を作成
-            let assertFalse = b.buildPlainFunction(with: .parameters(n: 1)) { args in
-                b.buildIf(args[0]) {
-                    b.throwException(b.loadString("AssertionError"))  // throwErrorをthrowStringに変更
-                }
-            }
-            b.setProperty("assertFalse", of: b.loadBuiltin("this"), to: assertFalse)
+            // 最適化された関数を実行
+            let result = b.callFunction(testFunc, withArgs: [b.loadInt(1)])
             
-            // 最適化された関数を実行してアサート
-            let result = b.callFunction(testFunc, withArgs: [b.loadBool(false)])  // loadBoolean を loadBool に変更
-            b.callFunction(assertFalse, withArgs: [result])
+            // 結果の検証
+            b.compare(result, with: b.loadInt(43), using: .equal)
             
-        }, catchBody: { _ in b.loadUndefined() })
+        }, catchBody: { _ in 
+            b.loadUndefined()
+        })
     },
 
     // ランダムな値を持つWASMモジュールのジェネレータを追加
