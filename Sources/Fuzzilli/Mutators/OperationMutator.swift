@@ -30,9 +30,13 @@ public class OperationMutator: BaseInstructionMutator {
 
         let newInstr: Instruction
         if instr.isOperationMutable && instr.isVariadic {
-            newInstr = probability(0.5) ? mutateOperation(instr, b) : extendVariadicOperation(instr, b)
+            newInstr = chooseUniform(from: [
+                { self.mutateOperation(instr, b) },
+                { self.extendVariadicOperation(instr, b) },
+                { self.smartMutateOperation(instr, b) }
+            ])()
         } else if instr.isOperationMutable {
-            newInstr = mutateOperation(instr, b)
+            newInstr = probability(0.7) ? mutateOperation(instr, b) : smartMutateOperation(instr, b)
         } else {
             assert(instr.isVariadic)
             newInstr = extendVariadicOperation(instr, b)
@@ -332,5 +336,29 @@ public class OperationMutator: BaseInstructionMutator {
         }
 
         // Failed to find a replacement value, so just leave the array unmodified.
+    }
+
+    private func smartMutateOperation(_ instr: Instruction, _ b: ProgramBuilder) -> Instruction {
+        let newOp: Operation
+        
+        switch instr.op.opcode {
+        case .loadInteger(_):
+            // 数値の場合、より意味のある値を選択
+            newOp = LoadInteger(value: chooseUniform(from: [-1, 0, 1, Int64.max, Int64.min]))
+        case .loadString(_):
+            // よく使用される文字列パターンを選択
+            newOp = LoadString(value: chooseUniform(from: ["", "undefined", "null", "[object Object]"]))
+        case .binaryOperation(_):
+            // より可能性の高い演算子を選択
+            newOp = BinaryOperation(chooseUniform(from: [.Add, .Sub, .Mul, .Div]))
+        case .compare(_):
+            // 一般的な比較演算子を選択
+            newOp = Compare(chooseUniform(from: [.equal, .strictEqual, .lessThan, .greaterThan]))
+        default:
+            // デフォルトは通常のmutateOperationを使用
+            return mutateOperation(instr, b)
+        }
+        
+        return Instruction(newOp, inouts: instr.inouts, flags: .empty)
     }
 }
