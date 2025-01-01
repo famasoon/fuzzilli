@@ -199,7 +199,7 @@ public let WasmCodeGenerators = [
             
             // ランダムなセクションタイプ
             let sectionTypes = [0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x0a]
-            let sectionType = b.loadInt(sectionTypes[b.randomInt(sectionTypes.count)])
+            let sectionType = b.loadInt(Int64(sectionTypes[Int.random(in: 0..<sectionTypes.count)]))
             
             // ランダムなバイナリデータを生成
             let wasmBytes = b.createArray(with: [
@@ -208,12 +208,12 @@ public let WasmCodeGenerators = [
                 b.loadInt(0x01), b.loadInt(0x00), b.loadInt(0x00), b.loadInt(0x00),
                 // ランダムなセクション
                 sectionType,
-                b.loadInt(b.randomInt(255)),  // ランダムなサイズ
-                b.loadInt(b.randomInt(255))   // ランダムなデータ
+                b.loadInt(b.randomInt() % 255),  // ランダムなサイズ
+                b.loadInt(b.randomInt() % 255)   // ランダムなデータ
             ])
             
             // ランダムな操作を選択
-            switch b.randomInt(3) {
+            switch Int.random(in: 0..<4) {
                 case 0:
                     b.callMethod("validate", on: WebAssembly, withArgs: [wasmBytes])
                 case 1:
@@ -241,27 +241,29 @@ public let WasmCodeGenerators = [
             
             // ランダムなビューを選択
             let viewTypes = ["Int8Array", "Int16Array", "Int32Array", "Float32Array", "Float64Array"]
-            let viewType = viewTypes[0]  // 固定インデックス
+            let viewType = viewTypes[Int.random(in: 0..<viewTypes.count)]
             let view = b.construct(b.loadBuiltin(viewType), withArgs: [b.getProperty("buffer", of: memory)])
             
             // ランダムなメモリアクセス
             for _ in 0..<5 {  // 固定回数
-                switch b.randomInt(4) {
+                switch Int.random(in: 0..<4) {
                     case 0:
                         // 書き込み
-                        b.callMethod("set", on: view, withArgs: [b.loadInt(b.randomInt(1000))])
+                        b.callMethod("set", on: view, withArgs: [b.loadInt(b.randomInt() % 1000)])
                     case 1:
                         // 読み取り
-                        b.callMethod("get", on: view, withArgs: [b.loadInt(b.randomInt(100))])
+                        b.callMethod("get", on: view, withArgs: [b.loadInt(b.randomInt() % 100)])
                     case 2:
                         // スライス
                         b.callMethod("slice", on: view, withArgs: [
-                            b.loadInt(b.randomInt(50)),
-                            b.loadInt(50 + b.randomInt(50))
+                            b.loadInt(b.randomInt() % 50),
+                            b.loadInt(50 + b.randomInt() % 50)
                         ])
                     case 3:
                         // メモリ拡張
-                        b.callMethod("grow", on: memory, withArgs: [b.loadInt(b.randomInt(5))])
+                        b.callMethod("grow", on: memory, withArgs: [b.loadInt(b.randomInt() % 5)])
+                    default:
+                        break
                 }
             }
         }, catchBody: { error in
