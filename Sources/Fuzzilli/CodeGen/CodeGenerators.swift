@@ -2439,6 +2439,64 @@ public let CodeGenerators: [CodeGenerator] = [
             b.callFunction(assertFalse, withArgs: [result])
             
         }, catchBody: { _ in b.loadUndefined() })
+    },
+
+    // ランダムな値を持つWASMモジュールのジェネレータを追加
+    CodeGenerator("RandomWasmValuesGenerator") { b in 
+        b.buildTryCatchFinally(tryBody: {
+            let WebAssembly = b.loadBuiltin("WebAssembly")
+            
+            // 基本的なWASMモジュールのバイトコード (f32/f64の定数を含む)
+            let wasmBytes = [
+                // マジックナンバーとバージョン
+                0x00, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00,
+                
+                // Type section
+                0x01, 0x07, 0x01, 0x60, 0x00, 0x02, 0x7d, 0x7c,  // () -> (f32, f64)
+                
+                // Function section
+                0x03, 0x02, 0x01, 0x00,
+                
+                // Export section
+                0x07, 0x0a, 0x01, 0x06, 0x76, 0x61, 0x6c, 0x75, 0x65, 0x73, 0x00, 0x00,  // "values"をエクスポート
+                
+                // Code section
+                0x0a, 0x0d, 0x01,  // セクションサイズとエントリー数
+                0x0b,  // 関数本体のサイズ
+                0x43,  // f32.const
+            ].map { Int64($0) }
+            
+            // ランダムなf32値を追加
+            let f32Bytes = withUnsafeBytes(of: Float.random(in: -1e3...1e3)) { bytes in
+                bytes.map { Int64($0) }
+            }
+            
+            // ランダムなf64値を追加
+            let f64Bytes = withUnsafeBytes(of: Double.random(in: -1e6...1e6)) { bytes in
+                bytes.map { Int64($0) }
+            }
+            
+            // バイトコードを結合
+            let fullBytes = wasmBytes + f32Bytes + [0x44] + f64Bytes + [0x0b]
+            
+            // バイトコードからUint8Arrayを作成
+            let uint8Array = b.construct(b.loadBuiltin("Uint8Array"), withArgs: [
+                b.createIntArray(with: fullBytes)
+            ])
+            
+            // モジュールを作成
+            let module = b.construct(b.getProperty("Module", of: WebAssembly), withArgs: [uint8Array])
+            
+            // インスタンス化
+            let instance = b.instantiateWasmModule(module)
+            
+            // エクスポートされた関数を呼び出し
+            let values = b.getProperty("values", of: b.getProperty("exports", of: instance))
+            b.callFunction(values, withArgs: [])
+            
+        }, catchBody: { error in
+            b.loadUndefined()
+        })
     }
 ]
 
