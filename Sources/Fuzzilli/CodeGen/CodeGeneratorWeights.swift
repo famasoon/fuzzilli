@@ -215,4 +215,7 @@ public let codeGeneratorWeights: [String: Int] = [
 
     // WebAssembly JSPI関連のジェネレータ
     "WasmJSPIExploitGenerator": 45,  // WASM JSPIエクスプロイトテスト用
+
+    // WebAssembly関連のジェネレータ
+    "RandomWasmBytesGenerator": 40,  // ランダムなWASMバイト列のテスト用
 ]

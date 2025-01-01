@@ -2323,6 +2323,79 @@ public let CodeGenerators: [CodeGenerator] = [
         }, catchBody: { error in
             b.loadUndefined()
         })
+    },
+
+    // ランダムなWASMバイト列を生成するジェネレータを追加
+    CodeGenerator("RandomWasmBytesGenerator") { b in 
+        b.buildTryCatchFinally(tryBody: {
+            let WebAssembly = b.loadBuiltin("WebAssembly")
+            
+            // 基本的なWASMヘッダー (マジックナンバーとバージョン)
+            let wasmHeader: [Int64] = [
+                0x00, 0x61, 0x73, 0x6d,  // マジックナンバー
+                0x01, 0x00, 0x00, 0x00   // バージョン
+            ]
+            
+            // ランダムなセクションを生成
+            var wasmBytes = wasmHeader
+            
+            // ランダムなセクションタイプとサイズを生成
+            let numSections = Int.random(in: 1...5)
+            for _ in 0..<numSections {
+                // セクションID (1-11の範囲)
+                let sectionId = Int64.random(in: 1...11)
+                wasmBytes.append(sectionId)
+                
+                // セクションサイズ (ランダム)
+                let sectionSize = Int64.random(in: 1...16)
+                wasmBytes.append(sectionSize)
+                
+                // ランダムなバイトでセクションを埋める
+                for _ in 0..<sectionSize {
+                    wasmBytes.append(Int64.random(in: 0...255))
+                }
+            }
+            
+            // バイトコードからUint8Arrayを作成
+            let uint8Array = b.construct(b.loadBuiltin("Uint8Array"), withArgs: [
+                b.createIntArray(with: wasmBytes)
+            ])
+            
+            // モジュールの作成を試みる
+            b.buildTryCatchFinally(tryBody: {
+                let module = b.construct(b.getProperty("Module", of: WebAssembly), withArgs: [uint8Array])
+                
+                // インスタンス化を試みる
+                let instance = b.construct(b.getProperty("Instance", of: WebAssembly), withArgs: [module])
+                
+                // エクスポートされた関数があれば呼び出しを試みる
+                let exports = b.getProperty("exports", of: instance)
+                let exportNames = ["main", "test", "func", "f", "run"]
+                
+                for name in exportNames {
+                    b.buildTryCatchFinally(tryBody: {
+                        let exportedFunc = b.getProperty(name, of: exports)
+                        
+                        // 通常の呼び出しとpromising経由の呼び出しを試みる
+                        if probability(0.5) {
+                            b.callFunction(exportedFunc, withArgs: [])
+                        } else {
+                            let promisedFunc = b.callFunction(b.getProperty("promising", of: WebAssembly), 
+                                                            withArgs: [exportedFunc])
+                            b.callFunction(promisedFunc, withArgs: [])
+                        }
+                    }, catchBody: { _ in
+                        b.loadUndefined()
+                    })
+                }
+                
+            }, catchBody: { _ in
+                b.loadUndefined()
+            })
+            
+        }, catchBody: { error in
+            b.loadUndefined()
+        })
     }
 ]
 
