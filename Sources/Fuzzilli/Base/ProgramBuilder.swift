@@ -3102,4 +3102,18 @@ public class ProgramBuilder {
         let op = InstantiateWasm(numImports: imports.count)
         return emit(op, withInputs: [module] + imports).output
     }
+
+    func randomElementForSplicing() -> Program {
+        // コーパスをチェック
+        guard !fuzzer.corpus.isEmpty else {
+            fatalError("Cannot select random element from empty corpus")
+        }
+        
+        // 安全な乱数生成
+        if let element = fuzzer.corpus.allPrograms().randomElement() {
+            return element
+        } else {
+            fatalError("Failed to select random element from non-empty corpus")
+        }
+    }
 }
