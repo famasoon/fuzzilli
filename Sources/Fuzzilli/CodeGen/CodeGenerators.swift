@@ -2128,6 +2128,57 @@ public let CodeGenerators: [CodeGenerator] = [
         }, catchBody: { error in
             b.loadUndefined()
         })
+    },
+
+    // WebAssemblyのPromise APIをテストするジェネレータを追加
+    CodeGenerator("WasmPromiseAPIGenerator") { b in 
+        b.buildTryCatchFinally(tryBody: {
+            let WebAssembly = b.loadBuiltin("WebAssembly")
+            
+            // 基本的なWASMモジュールのバイトコードを作成
+            let wasmBytes = [
+                0x00, 0x61, 0x73, 0x6d,  // マジックナンバー
+                0x01, 0x00, 0x00, 0x00,  // バージョン
+                0x01, 0x09, 0x02, 0x60, 0x00, 0x01, 0x7d, 0x60, 0x00, 0x01, 0x7d,  // Type section
+                0x02, 0x08, 0x01, 0x01, 0x6d, 0x02, 0x6a, 0x73, 0x00, 0x00,  // Import section
+                0x05, 0x03, 0x01, 0x00, 0x01,  // Memory section
+                0x07, 0x11, 0x02, 0x06, 0x6d, 0x65, 0x6d, 0x6f, 0x72, 0x79, 0x02, 0x00, 0x04, 0x6d, 0x61, 0x69, 0x6e, 0x00, 0x00  // Export section
+            ].map { Int64($0) }
+            
+            // バイトコードからUint8Arrayを作成
+            let bytesArray = b.createIntArray(with: wasmBytes)
+            let uint8Array = b.construct(b.loadBuiltin("Uint8Array"), withArgs: [bytesArray])
+            
+            // モジュールを作成
+            let module = b.construct(b.getProperty("Module", of: WebAssembly), withArgs: [uint8Array])
+            
+            // インポートオブジェクトを作成
+            let importObj = b.createObject(with: [
+                "m": b.createObject(with: [
+                    "js": b.buildPlainFunction(with: .parameters(n: 0)) { _ in 
+                        b.loadUndefined()
+                    }
+                ])
+            ])
+            
+            // インスタンスを作成
+            let instance = b.instantiateWasmModule(module, withImports: [importObj])
+            
+            // 配列を作成してデバッグプリント
+            let array = b.createFloatArray(with: Array(repeating: 1.1, count: 43))
+            b.callMethod("DebugPrint", on: b.loadBuiltin("%"), withArgs: [array])
+            
+            // WebAssembly.promisingを使用
+            let promising = b.getProperty("promising", of: WebAssembly)
+            let main = b.getProperty("main", of: b.getProperty("exports", of: instance))
+            let promisedMain = b.callFunction(promising, withArgs: [main])
+            
+            // promisedMainを呼び出し
+            b.callFunction(promisedMain, withArgs: [])
+            
+        }, catchBody: { error in
+            b.loadUndefined()
+        })
     }
 ]
 
