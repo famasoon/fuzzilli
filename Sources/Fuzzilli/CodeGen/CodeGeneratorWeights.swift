@@ -221,4 +221,7 @@ public let codeGeneratorWeights: [String: Int] = [
 
     // Maglev最適化関連のジェネレータ
     "MaglevOptimizationGenerator": 40,  // Maglev最適化のテスト用
+
+    // WebAssembly関連のジェネレータ
+    "RandomWasmValuesGenerator": 40,  // 新しく追加する重み
 ]
