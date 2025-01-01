@@ -2292,7 +2292,7 @@ public let CodeGenerators: [CodeGenerator] = [
             let instance = b.construct(b.getProperty("Instance", of: WebAssembly), withArgs: [module, importObj])
             
             // 安定したマップを持つ配列を作成
-            let array = b.createArray(with: [b.loadFloat(12.34)])
+            let array = b.createArray(with: [b.loadFloat(12.34)])  // with: ラベルを追加
             b.setProperty("fork_map", of: array, to: b.loadInt(1337))
             
             // デオプト対象の関数を作成
@@ -2396,6 +2396,49 @@ public let CodeGenerators: [CodeGenerator] = [
         }, catchBody: { error in
             b.loadUndefined()
         })
+    },
+
+    // Maglev最適化のテストジェネレータを追加
+    CodeGenerator("MaglevOptimizationGenerator") { b in 
+        b.buildTryCatchFinally(tryBody: {
+            // グローバル変数を作成
+            let globalVar = b.loadBool(false)  // loadBoolean を loadBool に変更
+            b.setProperty("v", of: b.loadBuiltin("this"), to: globalVar)
+            
+            // テスト対象の関数を作成
+            let testFunc = b.buildPlainFunction(with: .parameters(n: 1)) { args in
+                // 条件分岐を含む比較
+                let condition = b.ternary(args[0],
+                                         b.getProperty("v", of: b.loadBuiltin("this")),
+                                         b.loadNull())
+                b.compare(b.loadInt(0), with: condition, using: .equal)  // compareをbinaryに変更
+            }
+            b.setProperty("f", of: b.loadBuiltin("this"), to: testFunc)
+            
+            // 最適化の準備
+            b.callMethod("PrepareFunctionForOptimization", on: b.loadBuiltin("%"), 
+                        withArgs: [testFunc])
+            
+            // ウォームアップ実行
+            b.callFunction(testFunc, withArgs: [b.loadBool(true)])  // loadBoolean を loadBool に変更
+            
+            // Maglevでの最適化を要求
+            b.callMethod("OptimizeMaglevOnNextCall", on: b.loadBuiltin("%"), 
+                        withArgs: [testFunc])
+            
+            // アサーション関数を作成
+            let assertFalse = b.buildPlainFunction(with: .parameters(n: 1)) { args in
+                b.buildIf(args[0]) {
+                    b.throwException(b.loadString("AssertionError"))  // throwErrorをthrowStringに変更
+                }
+            }
+            b.setProperty("assertFalse", of: b.loadBuiltin("this"), to: assertFalse)
+            
+            // 最適化された関数を実行してアサート
+            let result = b.callFunction(testFunc, withArgs: [b.loadBool(false)])  // loadBoolean を loadBool に変更
+            b.callFunction(assertFalse, withArgs: [result])
+            
+        }, catchBody: { _ in b.loadUndefined() })
     }
 ]
 
