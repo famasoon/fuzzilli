@@ -425,9 +425,76 @@ public class JavaScriptEnvironment: ComponentBase, Environment {
         ))
     }
 
+    // ErrorTriggeringClassGeneratorの改善
+    private func registerErrorTypes() {
+        // エラー型の基本クラスを登録
+        let baseErrorType = ILType.object(
+            ofGroup: "Error",
+            withProperties: ["message", "name", "stack"],
+            withMethods: ["toString"]
+        )
+
+        // 各エラー型を登録
+        for errorType in [
+            "Error", "EvalError", "RangeError", "ReferenceError",
+            "SyntaxError", "TypeError", "URIError"
+        ] {
+            let errorInstanceType = baseErrorType + .object(ofGroup: errorType)
+            registerObjectGroup(ObjectGroup(
+                name: errorType,
+                instanceType: errorInstanceType,
+                properties: [
+                    "message": .string,
+                    "name": .string,
+                    "stack": .string
+                ],
+                methods: [
+                    "toString": [] => .string
+                ]
+            ))
+        }
+    }
+
+    // MaglevOptimizationGeneratorの改善
+    private func registerOptimizationTypes() {
+        // Maglevの最適化関連の型を登録
+        let maglevType = ILType.object(
+            ofGroup: "MaglevOptimization",
+            withProperties: [
+                "isOptimized",
+                "optimizationStatus",
+                "optimizationCount"
+            ],
+            withMethods: [
+                "optimizeFunction",
+                "deoptimizeFunction",
+                "getOptimizationStatus"
+            ]
+        )
+
+        registerObjectGroup(ObjectGroup(
+            name: "MaglevOptimization",
+            instanceType: maglevType,
+            properties: [
+                "isOptimized": .boolean,
+                "optimizationStatus": .integer,
+                "optimizationCount": .integer
+            ],
+            methods: [
+                "optimizeFunction": [.function()] => .boolean,
+                "deoptimizeFunction": [.function()] => .boolean,
+                "getOptimizationStatus": [.function()] => .integer
+            ]
+        ))
+    }
+
     public init(additionalBuiltins: [String: ILType] = [:], additionalObjectGroups: [ObjectGroup] = []) {
         super.init(name: "JavaScriptEnvironment")
 
+        // 新しい初期化メソッドを呼び出し
+        registerErrorTypes()
+        registerOptimizationTypes()
+        
         // WebAssembly関連の型を登録
         registerWebAssemblyTypes()
 
