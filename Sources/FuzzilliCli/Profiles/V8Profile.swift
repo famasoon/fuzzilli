@@ -127,16 +127,30 @@ fileprivate let WasmStructGenerator = CodeGenerator("WasmStructGenerator") { b i
 }
 
 fileprivate let WasmArrayGenerator = CodeGenerator("WasmArrayGenerator") { b in
-    b.eval("%WasmArray()", hasOutput: true);
+    b.eval("%WasmArray()", hasOutput: true)
 }
 
 fileprivate let WasmMemoryGenerator = CodeGenerator("WasmMemoryGenerator") { b in
-    let wasmMemory = b.loadBuiltin("WebAssembly.Memory")
-    let memoryDesc = b.createObject(with: [
-        "initial": b.loadInt(1),
-        "maximum": b.loadInt(10)
-    ])
-    b.construct(wasmMemory, withArgs: [memoryDesc])
+    b.buildTryCatchFinally(tryBody: {
+        let wasmMemory = b.loadBuiltin("WebAssembly.Memory")
+        let memoryDesc = b.createObject(with: [
+            "initial": b.loadInt(1),
+            "maximum": b.loadInt(10),
+            "shared": b.loadBool(probability(0.2))  // 時々共有メモリを使用
+        ])
+        let memory = b.construct(wasmMemory, withArgs: [memoryDesc])
+        
+        // 異なる型付き配列でのアクセスをテスト
+        if probability(0.5) {
+            let viewTypes = ["Int8Array", "Int16Array", "Int32Array", "Float32Array", "Float64Array"]
+            let viewType = chooseUniform(from: viewTypes)
+            let view = b.construct(b.loadBuiltin(viewType), 
+                                 withArgs: [b.getProperty("buffer", of: memory)])
+            b.callMethod("set", on: view, withArgs: [b.loadInt(0), b.loadInt(42)])
+        }
+    }, catchBody: { error in
+        b.loadUndefined()
+    })
 }
 
 fileprivate let WasmTableGenerator = CodeGenerator("WasmTableGenerator") { b in
@@ -150,7 +164,7 @@ fileprivate let WasmTableGenerator = CodeGenerator("WasmTableGenerator") { b in
 }
 
 fileprivate let WasmGlobalGenerator = CodeGenerator("WasmGlobalGenerator") { b in
-    b.eval("%WasmGlobal()", hasOutput: true); 
+    b.eval("%WasmGlobal()", hasOutput: true)
 }
 
 fileprivate let MapTransitionFuzzer = ProgramTemplate("MapTransitionFuzzer") { b in
@@ -609,7 +623,191 @@ fileprivate let ComplexWasmFuzzer = ProgramTemplate("ComplexWasmFuzzer") { b in
     })
 }
 
-let v8Profile = Profile(
+// メモリ操作のジェネレータ
+fileprivate let WasmMemoryOperationsGenerator = CodeGenerator("WasmMemoryOperationsGenerator") { b in
+    b.buildTryCatchFinally(tryBody: {
+        let wasmMemory = b.loadBuiltin("WebAssembly.Memory")
+        let memoryDesc = b.createObject(with: [
+            "initial": b.loadInt(1),
+            "maximum": b.loadInt(10),
+            "shared": b.loadBool(probability(0.2))
+        ])
+        let memory = b.construct(wasmMemory, withArgs: [memoryDesc])
+        
+        // 様々な型付き配列でのアクセス
+        let viewTypes = ["Int8Array", "Int16Array", "Int32Array", "Float32Array", "Float64Array", 
+                        "Uint8Array", "Uint16Array", "Uint32Array"]
+        
+        for viewType in viewTypes {
+            if probability(0.3) {
+                let view = b.construct(b.loadBuiltin(viewType), 
+                                     withArgs: [b.getProperty("buffer", of: memory)])
+                
+                // ランダムな位置に書き込み
+                let index = b.loadInt(Int64.random(in: 0..<256))
+                let value = b.loadInt(Int64.random(in: -128..<128))
+                b.callMethod("set", on: view, withArgs: [index, value])
+                
+                // 読み取りテスト
+                b.callMethod("get", on: view, withArgs: [index])
+                
+                // 範囲外アクセスのテスト
+                if probability(0.1) {
+                    let outOfBoundsIndex = b.loadInt(Int64.random(in: 1000..<2000))
+                    b.callMethod("get", on: view, withArgs: [outOfBoundsIndex])
+                }
+            }
+        }
+        
+        // メモリの成長テスト
+        if probability(0.2) {
+            b.callMethod("grow", on: memory, withArgs: [b.loadInt(1)])
+        }
+    }, catchBody: { error in
+        b.loadUndefined()
+    })
+}
+
+// メモリ境界テストのジェネレータ
+fileprivate let WasmMemoryBoundaryTest = CodeGenerator("WasmMemoryBoundaryTest") { b in
+    b.buildTryCatchFinally(tryBody: {
+        let memory = b.construct(b.loadBuiltin("WebAssembly.Memory"), 
+                               withArgs: [b.createObject(with: [
+                                   "initial": b.loadInt(1),
+                                   "maximum": b.loadInt(2)
+                               ])])
+        
+        // 境界値でのアクセス
+        let view = b.construct(b.loadBuiltin("Int32Array"), 
+                             withArgs: [b.getProperty("buffer", of: memory)])
+        
+        // ページサイズ境界でのアクセス
+        let pageSize = 65536
+        let indices = [
+            pageSize - 4,    // ページ境界直前
+            pageSize,        // ページ境界
+            pageSize + 4     // ページ境界直後
+        ]
+        
+        for index in indices {
+            b.callMethod("get", on: view, withArgs: [b.loadInt(Int64(index))])
+        }
+        
+        // メモリ成長時の境界テスト
+        b.callMethod("grow", on: memory, withArgs: [b.loadInt(1)])
+        b.callMethod("get", on: view, withArgs: [b.loadInt(Int64(pageSize * 2 - 4))])
+    }, catchBody: { error in
+        b.loadUndefined()
+    })
+}
+
+// 並行アクセステストのジェネレータ
+fileprivate let WasmConcurrentAccessTest = CodeGenerator("WasmConcurrentAccessTest") { b in
+    b.buildTryCatchFinally(tryBody: {
+        let memory = b.construct(b.loadBuiltin("WebAssembly.Memory"), 
+                               withArgs: [b.createObject(with: [
+                                   "initial": b.loadInt(1),
+                                   "maximum": b.loadInt(2),
+                                   "shared": b.loadBool(true)
+                               ])])
+        
+        // 共有メモリへの並行アクセス
+        let view = b.construct(b.loadBuiltin("Int32Array"), 
+                             withArgs: [b.getProperty("buffer", of: memory)])
+        
+        // Atomics APIを使用
+        let atomics = b.loadBuiltin("Atomics")
+        let index = b.loadInt(0)
+        let value = b.loadInt(42)
+        
+        b.callMethod("store", on: atomics, withArgs: [view, index, value])
+        b.callMethod("load", on: atomics, withArgs: [view, index])
+        b.callMethod("add", on: atomics, withArgs: [view, index, b.loadInt(1)])
+        b.callMethod("sub", on: atomics, withArgs: [view, index, b.loadInt(1)])
+    }, catchBody: { error in
+        b.loadUndefined()
+    })
+}
+
+// 型変換テストのジェネレータ
+fileprivate let WasmTypeConversionTest = CodeGenerator("WasmTypeConversionTest") { b in
+    b.buildTryCatchFinally(tryBody: {
+        let wasmModule = b.loadBuiltin("WebAssembly")
+        
+        // 様々な型の変換をテストするモジュール
+        let moduleBytes = b.createArray(with: [
+            // マジックナンバーとバージョン
+            b.loadInt(0x00), b.loadInt(0x61), b.loadInt(0x73), b.loadInt(0x6d),
+            b.loadInt(0x01), b.loadInt(0x00), b.loadInt(0x00), b.loadInt(0x00),
+            // タイプセクション - 様々な型のパラメータと戻り値
+            b.loadInt(0x01), b.loadInt(0x07), b.loadInt(0x01),
+            b.loadInt(0x60), b.loadInt(0x04),
+            b.loadInt(0x7f),  // i32
+            b.loadInt(0x7e),  // i64
+            b.loadInt(0x7d),  // f32
+            b.loadInt(0x7c),  // f64
+            b.loadInt(0x01), b.loadInt(0x7f)  // 戻り値 i32
+        ])
+        
+        let module = b.construct(b.getProperty("Module", of: wasmModule), withArgs: [moduleBytes])
+        let instance = b.construct(b.getProperty("Instance", of: wasmModule), withArgs: [module])
+        
+        // エッジケースの値でテスト
+        let exports = b.getProperty("exports", of: instance)
+        let testFunc = b.getProperty("test", of: exports)
+        
+        // 様々な型の値でテスト
+        let testValues = [
+            b.loadInt(0x7fffffff),     // i32 最大値
+            b.loadInt(-0x80000000),    // i32 最小値
+            b.loadFloat(3.14159),      // f32
+            b.loadFloat(1.0e38),       // f32 大きな値
+            b.loadFloat(1.0e-38)       // f32 小さな値
+        ]
+        
+        for value in testValues {
+            b.callFunction(testFunc, withArgs: [value])
+        }
+    }, catchBody: { error in
+        b.loadUndefined()
+    })
+}
+
+// 基本的なWASM操作のジェネレータ
+fileprivate let WasmGenerator = CodeGenerator("WasmGenerator") { b in
+    b.buildTryCatchFinally(tryBody: {
+        let wasmModule = b.loadBuiltin("WebAssembly")
+        
+        // 基本的な数値演算を行うWASMモジュール
+        let moduleBytes = b.createArray(with: [
+            // マジックナンバーとバージョン
+            b.loadInt(0x00), b.loadInt(0x61), b.loadInt(0x73), b.loadInt(0x6d),
+            b.loadInt(0x01), b.loadInt(0x00), b.loadInt(0x00), b.loadInt(0x00),
+            // タイプセクション
+            b.loadInt(0x01), b.loadInt(0x07), b.loadInt(0x01),
+            b.loadInt(0x60), b.loadInt(0x02), b.loadInt(0x7f), b.loadInt(0x7f),
+            b.loadInt(0x01), b.loadInt(0x7f),
+            // 関数セクション
+            b.loadInt(0x03), b.loadInt(0x02), b.loadInt(0x01), b.loadInt(0x00),
+            // エクスポートセクション
+            b.loadInt(0x07), b.loadInt(0x07), b.loadInt(0x01),
+            b.loadInt(0x03), b.loadInt(3),  // "add"の長さ(3)を直接指定
+            b.loadString("add"),
+            b.loadInt(0x00), b.loadInt(0x00)
+        ])
+        
+        let module = b.construct(b.getProperty("Module", of: wasmModule), withArgs: [moduleBytes])
+        let instance = b.construct(b.getProperty("Instance", of: wasmModule), withArgs: [module])
+        
+        // エクスポートされた関数を呼び出し
+        let exports = b.getProperty("exports", of: instance)
+        b.callFunction(b.getProperty("add", of: exports), withArgs: [b.loadInt(42), b.loadInt(13)])
+    }, catchBody: { error in
+        b.loadUndefined()
+    })
+}
+
+let v8Profile: Profile = Profile(
     processArgs: { randomize in
         var args = [
             "--expose-gc",
@@ -702,16 +900,18 @@ let v8Profile = Profile(
         (WorkerGenerator,                         10),
         (GcGenerator,                             10),
         
-        // 新しいジェネレータを追加
-        (WasmStructGenerator,                     15),
-        (MaglevOptimizationGenerator,            15),
-        (TurbofanTypeVerifierGenerator,          15),
-        
         // WebAssembly関連のジェネレータ
-        (WasmMemoryGenerator,                     10),
-        (WasmTableGenerator,                      10),
-        (WasmGlobalGenerator,                     10),
-        (WasmInstantiateGenerator,                15),
+        (WasmGenerator,                           50),
+        (WasmMemoryOperationsGenerator,           40),
+        (WasmStructGenerator,                     40),
+        (WasmTableGenerator,                      40),
+        (WasmArrayGenerator,                      40),
+        (WasmGlobalGenerator,                     40),
+        
+        // エッジケーステスト
+        (WasmMemoryBoundaryTest,                 30),
+        (WasmConcurrentAccessTest,               25),
+        (WasmTypeConversionTest,                 35),
     ],
 
     additionalProgramTemplates: WeightedList<ProgramTemplate>([
