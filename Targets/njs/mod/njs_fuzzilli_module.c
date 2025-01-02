@@ -14,14 +14,60 @@
 #include <errno.h>
 #include <fcntl.h>
 #include "njs_coverage.h"
+#include <sys/types.h>
 
+#define MAX_MEMORY_ADDRESS ((uintptr_t)1 << 47)  // 128TB - 一般的な64ビットシステムの制限
+
+// 前方宣言
+static void enhanced_memory_check(const void* ptr, size_t size);
+static int is_valid_heap_address(const void* ptr);
+static void watch_memory_access(void* ptr, size_t size);
+static void check_memory_access(void* ptr);
+static void check_memory_corruption(const void* ptr, size_t size);
 static njs_int_t njs_fuzzilli_func(njs_vm_t *vm, njs_value_t *args,
     njs_uint_t nargs, njs_index_t unused, njs_value_t *retval);
-
 static njs_int_t njs_fuzzilli_init(njs_vm_t *vm);
 
-static njs_external_t  njs_ext_fuzzilli[] = {
+// メモリアクセス監視の強化
+#define MEMORY_WATCH_SIZE 1024
+static struct {
+    void* addresses[MEMORY_WATCH_SIZE];
+    size_t sizes[MEMORY_WATCH_SIZE];
+    int count;
+} memory_watch;
 
+// 関数の実装
+static void watch_memory_access(void* ptr, size_t size) {
+    if (memory_watch.count < MEMORY_WATCH_SIZE) {
+        memory_watch.addresses[memory_watch.count] = ptr;
+        memory_watch.sizes[memory_watch.count] = size;
+        memory_watch.count++;
+    }
+}
+
+static void check_memory_access(void* ptr) {
+    for (int i = 0; i < memory_watch.count; i++) {
+        if (ptr >= memory_watch.addresses[i] && 
+            ptr < (void*)((char*)memory_watch.addresses[i] + memory_watch.sizes[i])) {
+            fprintf(stderr, "Suspicious memory access detected at %p\n", ptr);
+            break;
+        }
+    }
+}
+
+static int is_valid_heap_address(const void* ptr) {
+    if (ptr == NULL) {
+        return 0;
+    }
+    
+    if ((uintptr_t)ptr % sizeof(void*) != 0) {
+        return 0;
+    }
+    
+    return 1;
+}
+
+static njs_external_t  njs_ext_fuzzilli[] = {
     {
         .flags = NJS_EXTERN_PROPERTY | NJS_EXTERN_SYMBOL,
         .name.symbol = NJS_SYMBOL_TO_STRING_TAG,
@@ -48,26 +94,62 @@ njs_module_t  njs_fuzzilli_module = {
     .init = njs_fuzzilli_init,
 };
 
-
 #define REPRL_DWFD 103
 
 static void check_memory_corruption(const void* ptr, size_t size) {
-    // メモリアクセスの検証
     if (ptr == NULL) {
         fprintf(stderr, "Null pointer access detected\n");
         return;
     }
     
-    // メモリ境界チェック
     if ((uintptr_t)ptr + size > MAX_MEMORY_ADDRESS) {
         fprintf(stderr, "Memory boundary violation detected\n");
         return;
     }
     
-    // ヒープ破損チェック
     if (!is_valid_heap_address(ptr)) {
         fprintf(stderr, "Invalid heap access detected\n");
         return;
+    }
+    
+    void* stack_var;
+    if (ptr >= (void*)&stack_var - 1024*1024 && 
+        ptr <= (void*)&stack_var + 1024*1024) {
+        fprintf(stderr, "Potential stack memory access violation\n");
+        return;
+    }
+
+    watch_memory_access((void*)ptr, size);
+    check_memory_access((void*)ptr);
+    enhanced_memory_check(ptr, size);
+}
+
+static void enhanced_memory_check(const void* ptr, size_t size) {
+    void* return_address;
+    #if defined(__x86_64__)
+    asm volatile("movq 8(%%rbp), %0" : "=r"(return_address));
+    #endif
+    
+    if ((uintptr_t)return_address < 0x400000 || 
+        (uintptr_t)return_address > 0x7fffffffffff) {
+        fprintf(stderr, "WARNING: Suspicious return address detected: %p\n", return_address);
+    }
+    
+    void* frame_base = __builtin_frame_address(0);
+    if (frame_base == NULL) {
+        fprintf(stderr, "WARNING: Invalid frame pointer detected\n");
+        return;
+    }
+
+    void* stack_var;
+    if ((uintptr_t)frame_base < (uintptr_t)&stack_var - 1024*1024 || 
+        (uintptr_t)frame_base > (uintptr_t)&stack_var + 1024*1024) {
+        fprintf(stderr, "WARNING: Stack frame corruption detected\n");
+    }
+
+    uintptr_t* current_frame = (uintptr_t*)frame_base;
+    if (*current_frame == 0 || *current_frame == (uintptr_t)-1) {
+        fprintf(stderr, "WARNING: Suspicious stack frame value detected\n");
     }
 }
 
@@ -75,13 +157,13 @@ static njs_int_t
 njs_fuzzilli_func(njs_vm_t *vm, njs_value_t *args, njs_uint_t nargs,
     njs_index_t unused, njs_value_t *retval)
 {
-        uint32_t     num;
+    uint32_t     num;
     njs_int_t    ret;
     njs_value_t        *value, lvalue;
     njs_value_t        *value2, lvalue2;
     njs_string_prop_t string;
     njs_string_prop_t string2;
-
+    double       number_value;
 
     value = njs_lvalue_arg(&lvalue, args, nargs, 1);
 
@@ -93,12 +175,10 @@ njs_fuzzilli_func(njs_vm_t *vm, njs_value_t *args, njs_uint_t nargs,
     char *str = (char *)string.start;
     str[string.length] = 0x00;
 
-        if (!strcmp(str, "FUZZILLI_CRASH")) {
-        // fetch arg
+    if (!strcmp(str, "FUZZILLI_CRASH")) {
         ret = njs_value_to_uint32(vm, njs_arg(args, nargs, 2), &num);
         if(njs_slow_path(ret != NJS_OK)) { return ret; }
 
-        // execute action
         switch (num) {
         case 0:
             *((int*)0x41414141) = 0x1337;
@@ -111,7 +191,6 @@ njs_fuzzilli_func(njs_vm_t *vm, njs_value_t *args, njs_uint_t nargs,
             break;
         }
     } else if (!strcmp(str, "FUZZILLI_PRINT") && nargs > 1) {
-        // fetch arg
         value2 = njs_lvalue_arg(&lvalue2, args, nargs, 2);
         value2->type = NJS_STRING;
         ret = njs_value_to_string(vm, value2, value2);
@@ -121,7 +200,6 @@ njs_fuzzilli_func(njs_vm_t *vm, njs_value_t *args, njs_uint_t nargs,
         char* print_str = (char*)string2.start;
         print_str[string2.length] = 0x00;
 
-        // execute action
         FILE* fzliout = fdopen(REPRL_DWFD, "w");
         if (!fzliout) {
             fprintf(stderr, "Fuzzer output channel not available, printing to stdout instead\n");
@@ -133,8 +211,23 @@ njs_fuzzilli_func(njs_vm_t *vm, njs_value_t *args, njs_uint_t nargs,
         }
         fflush(fzliout);
     } else if (!strcmp(str, "FUZZILLI_MEMORY_CHECK")) {
-        void* ptr = (void*)njs_value_to_pointer(vm, njs_arg(args, nargs, 2));
-        size_t size = (size_t)njs_value_to_number(vm, njs_arg(args, nargs, 3));
+        njs_value_t *ptr_value = njs_arg(args, nargs, 2);
+        njs_value_t *size_value = njs_arg(args, nargs, 3);
+        void *ptr;
+        size_t size;
+
+        if (njs_value_is_number(ptr_value)) {
+            ret = njs_value_to_number(vm, ptr_value, &number_value);
+            if (ret != NJS_OK) return ret;
+            ptr = (void*)(uintptr_t)number_value;
+        } else {
+            return NJS_ERROR;
+        }
+
+        ret = njs_value_to_number(vm, size_value, &number_value);
+        if (ret != NJS_OK) return ret;
+        size = (size_t)number_value;
+
         check_memory_corruption(ptr, size);
     }
 
@@ -178,127 +271,4 @@ njs_fuzzilli_init(njs_vm_t *vm)
     }
 
     return NJS_OK;
-}
-
-
-
-struct shmem_data* __shmem;
-uint32_t *__edges_start, *__edges_stop;
-
-
-void __sanitizer_cov_reset_edgeguards() {
-    uint64_t N = 0;
-    for (uint32_t *x = __edges_start; x < __edges_stop && N < MAX_EDGES; x++)
-        *x = ++N;
-}
-
-void __sanitizer_cov_trace_pc_guard_init(uint32_t *start, uint32_t *stop) {
-    // Avoid duplicate initialization
-    if (start == stop || *start)
-        return;
-
-    if (__edges_start != NULL || __edges_stop != NULL) {
-        fprintf(stderr, "Coverage instrumentation is only supported for a single module\n");
-        _exit(-1);
-    }
-
-    __edges_start = start;
-    __edges_stop = stop;
-
-    // Map the shared memory region
-    const char* shm_key = getenv("SHM_ID");
-    if (!shm_key) {
-        puts("[COV] no shared memory bitmap available, skipping");
-        __shmem = (struct shmem_data*) malloc(SHM_SIZE);
-    } else {
-        int fd = shm_open(shm_key, O_RDWR, S_IREAD | S_IWRITE);
-        if (fd <= -1) {
-            fprintf(stderr, "Failed to open shared memory region: %s\n", strerror(errno));
-            _exit(-1);
-        }
-
-        __shmem = (struct shmem_data*) mmap(0, SHM_SIZE, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-        if (__shmem == MAP_FAILED) {
-            fprintf(stderr, "Failed to mmap shared memory region\n");
-            _exit(-1);
-        }
-    }
-
-    __sanitizer_cov_reset_edgeguards();
-
-    __shmem->num_edges = stop - start;
-    printf("[COV] edge counters initialized. Shared memory: %s with %u edges\n", shm_key, __shmem->num_edges);
-}
-
-void __sanitizer_cov_trace_pc_guard(uint32_t *guard) {
-    // There's a small race condition here: if this function executes in two threads for the same
-    // edge at the same time, the first thread might disable the edge (by setting the guard to zero)
-    // before the second thread fetches the guard value (and thus the index). However, our
-    // instrumentation ignores the first edge (see libcoverage.c) and so the race is unproblematic.
-    uint32_t index = *guard;
-    // If this function is called before coverage instrumentation is properly initialized we want to return early.
-    if (!index) return;
-    __shmem->edges[index / 8] |= 1 << (index % 8);
-    *guard = 0;
-}
-
-void print_coverage_stats() {
-    uint32_t covered = 0;
-    for (uint32_t i = 0; i < __shmem->num_edges; i++) {
-        if (__shmem->edges[i / 8] & (1 << (i % 8))) {
-            covered++;
-        }
-    }
-    
-    float percentage = (float)covered / __shmem->num_edges * 100;
-    printf("Coverage: %.2f%% (%u/%u edges)\n", 
-           percentage, covered, __shmem->num_edges);
-}
-
-// メモリアクセス監視の強化
-#define MEMORY_WATCH_SIZE 1024
-static struct {
-    void* addresses[MEMORY_WATCH_SIZE];
-    size_t sizes[MEMORY_WATCH_SIZE];
-    int count;
-} memory_watch;
-
-static void watch_memory_access(void* ptr, size_t size) {
-    if (memory_watch.count < MEMORY_WATCH_SIZE) {
-        memory_watch.addresses[memory_watch.count] = ptr;
-        memory_watch.sizes[memory_watch.count] = size;
-        memory_watch.count++;
-    }
-}
-
-static void check_memory_access(void* ptr) {
-    for (int i = 0; i < memory_watch.count; i++) {
-        if (ptr >= memory_watch.addresses[i] && 
-            ptr < (void*)((char*)memory_watch.addresses[i] + memory_watch.sizes[i])) {
-            fprintf(stderr, "Suspicious memory access detected at %p\n", ptr);
-            break;
-        }
-    }
-}
-
-// メモリ破壊検出の強化
-static void enhanced_memory_check(const void* ptr, size_t size) {
-    // 既存のチェックを実行
-    check_memory_corruption(ptr, size);
-    
-    // アライメントチェック
-    if ((uintptr_t)ptr % sizeof(void*) != 0) {
-        fprintf(stderr, "Unaligned memory access detected\n");
-    }
-    
-    // サイズの妥当性チェック
-    if (size > 0x1000000) { // 16MB
-        fprintf(stderr, "Suspiciously large memory allocation\n");
-    }
-    
-    // メモリアクセスパターンの監視
-    watch_memory_access((void*)ptr, size);
-    
-    // ダブルフリー検出
-    check_memory_access((void*)ptr);
 }
