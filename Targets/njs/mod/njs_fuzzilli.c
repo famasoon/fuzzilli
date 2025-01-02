@@ -24,6 +24,15 @@ uint32_t *__edges_start, *__edges_stop;
 #define MAX_EDGES ((SHM_SIZE - 4) * 8)
 #define MEMORY_LEAK_THRESHOLD (1024 * 1024)  // 1MB
 
+#define REPRL_CRFD 100
+#define REPRL_CWFD 101
+#define REPRL_DRFD 102
+#define REPRL_DWFD 103
+
+// REPRLプロトコルのハンドシェイク用バッファ
+static char helo[4];
+static char status[4];
+
 // メモリ使用量取得関数の実装
 size_t getCurrentMemoryUsage(void) {
     size_t vm_size = 0;
@@ -107,6 +116,22 @@ int main(int argc, char* argv[]) {
     njs_vm_t *vm;
     njs_vm_opt_t vm_options;
     
+    // REPRLプロトコルの初期化
+    if (write(REPRL_CWFD, "HELO", 4) != 4) {
+        fprintf(stderr, "Failed to write HELO message\n");
+        return 1;
+    }
+
+    if (read(REPRL_CRFD, helo, 4) != 4) {
+        fprintf(stderr, "Failed to read HELO message\n");
+        return 1;
+    }
+
+    if (memcmp(helo, "HELO", 4) != 0) {
+        fprintf(stderr, "Invalid response from parent\n");
+        return 1;
+    }
+
     // VMの初期化
     memset(&vm_options, 0, sizeof(njs_vm_opt_t));
     vm = njs_vm_create(&vm_options);
@@ -122,8 +147,21 @@ int main(int argc, char* argv[]) {
     if (setjmp(crash_jmp_buf) == 0) {
         // テァジングテストの実行
         run_fuzzing_tests(vm);
+        
+        // 正常終了を通知
+        status[0] = 0;  // exit code
+        status[1] = 0;  // signal
+        status[2] = 0;  // threw
+        status[3] = 0;  // reserved
+        write(REPRL_CWFD, status, 4);
     } else {
         fprintf(stderr, "Crash detected during test execution\n");
+        // クラッシュを通知
+        status[0] = 1;  // exit code
+        status[1] = 11; // SIGSEGV
+        status[2] = 1;  // threw
+        status[3] = 0;  // reserved
+        write(REPRL_CWFD, status, 4);
     }
 
     // メモリリークの検出
