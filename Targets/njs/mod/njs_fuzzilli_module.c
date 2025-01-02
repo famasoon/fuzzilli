@@ -217,3 +217,16 @@ void __sanitizer_cov_trace_pc_guard(uint32_t *guard) {
     __shmem->edges[index / 8] |= 1 << (index % 8);
     *guard = 0;
 }
+
+void print_coverage_stats() {
+    uint32_t covered = 0;
+    for (uint32_t i = 0; i < __shmem->num_edges; i++) {
+        if (__shmem->edges[i / 8] & (1 << (i % 8))) {
+            covered++;
+        }
+    }
+    
+    float percentage = (float)covered / __shmem->num_edges * 100;
+    printf("Coverage: %.2f%% (%u/%u edges)\n", 
+           percentage, covered, __shmem->num_edges);
+}
