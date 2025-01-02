@@ -1464,8 +1464,7 @@ public class ProgramBuilder {
     private func buildInternal(initialBuildingBudget: Int, mode: BuildingMode) {
         assert(initialBuildingBudget > 0)
 
-        // 連続失敗の最大回数を増やす
-        let maxConsecutiveFailures = 20 // 元の値は10
+        let maxConsecutiveFailures = 20
         var consecutiveFailures = 0
 
         let state = BuildingState(initialBudget: initialBuildingBudget, mode: mode)
@@ -1523,11 +1522,30 @@ public class ProgramBuilder {
                 
                 if availableGenerators.isEmpty {
                     logger.warning("No suitable generators available after filtering. Attempting fallback...")
-                    // フォールバック: 最も基本的な値の生成を試みる
-                    let result = buildValues(1)
-                    consecutiveFailures = 0
-                    remainingBudget -= result.generatedInstructions
-                    continue
+                    
+                    // コンテキストチェックを追加
+                    if context.contains(.javascript) {
+                        // JavaScriptコンテキスト内でのみ基本的な値生成を試みる
+                        let result = buildValues(1)
+                        consecutiveFailures = 0
+                        remainingBudget -= result.generatedInstructions
+                        continue
+                    } else {
+                        // 不適切なコンテキストの場合は警告を出して次のイテレーションへ
+                        logger.warning("Cannot build values in current context: \(context)")
+                        // コンテキストに応じた別のフォールバック処理を試みる
+                        if let generator = findSimpleGeneratorForContext(context) {
+                            // ジェネレーターと重み（1）のタプルを作成
+                            availableGenerators = WeightedList([(generator, 1)])
+                        } else {
+                            consecutiveFailures += 1
+                            if consecutiveFailures >= maxConsecutiveFailures {
+                                logger.warning("Unable to recover in current context. Bailing out.")
+                                return
+                            }
+                        }
+                        continue
+                    }
                 }
             }
 
@@ -1603,6 +1621,15 @@ public class ProgramBuilder {
                     return
                 }
             }
+        }
+    }
+
+    // コンテキストに応じた単純なジェネレーターを見つけるヘルパー関数
+    private func findSimpleGeneratorForContext(_ context: Context) -> CodeGenerator? {
+        return fuzzer.codeGenerators.first { generator in
+            generator.requiredContext.isSubset(of: context) && 
+            !generator.isRecursive &&
+            generator.inputs.count == 0
         }
     }
 
