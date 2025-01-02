@@ -220,3 +220,165 @@ struct coverage_stats getCoverageStats() {
     
     return stats;
 }
+
+// RIPレジスタ制御を狙ったファジングケース
+function generateRIPControlTestCases() {
+    // 関数ポインタの破壊を狙ったテスト
+    fuzzilli.testing(`
+        // プロトタイプ汚染による関数ポインタの上書き
+        let obj = {};
+        Object.setPrototypeOf(obj, {
+            get [Symbol.toPrimitive]() {
+                return function() { 
+                    // メモリレイアウトを破壊する試み
+                    let buf = new ArrayBuffer(8);
+                    let view = new DataView(buf);
+                    view.setBigUint64(0, 0x4141414141414141n, true);
+                    return buf;
+                }
+            }
+        });
+        try { obj.toString(); } catch(e) {}`
+    );
+
+    // JITコンパイラの最適化を悪用した関数ポインタの破壊
+    fuzzilli.testing(`
+        function jitCorrupt(x) {
+            // JIT最適化を誘発
+            for(let i = 0; i < 10000; i++) {
+                if(x === 0x1337) {
+                    // 関数テーブルの破壊を試みる
+                    let arr = new Array(1000);
+                    arr.fill(new Function('return 0x4141414141414141'));
+                    arr[0].__proto__ = null;
+                    return arr;
+                }
+            }
+        }
+        for(let i = 0; i < 10000; i++) jitCorrupt(i);
+        jitCorrupt(0x1337);`
+    );
+
+    // vtableの破壊を狙ったテスト
+    fuzzilli.testing(`
+        class Base {
+            constructor() { this.x = 1; }
+            method() { return this.x; }
+        }
+        class Derived extends Base {
+            constructor() { 
+                super();
+                // vtableの位置を推測して破壊を試みる
+                this.__proto__ = new Proxy({}, {
+                    get(target, prop) {
+                        if (prop === 'method') {
+                            let buf = new ArrayBuffer(8);
+                            let view = new DataView(buf);
+                            view.setBigUint64(0, 0x4242424242424242n, true);
+                            return buf;
+                        }
+                    }
+                });
+            }
+        }
+        try {
+            let obj = new Derived();
+            obj.method();
+        } catch(e) {}`
+    );
+
+    // 例外ハンドラの破壊を狙ったテスト
+    fuzzilli.testing(`
+        try {
+            let handler = new Proxy({}, {
+                get(target, prop) {
+                    if (prop === 'constructor') {
+                        // 例外ハンドラチェーンの破壊を試みる
+                        let buf = new ArrayBuffer(16);
+                        let view = new DataView(buf);
+                        view.setBigUint64(0, 0x4343434343434343n, true);
+                        view.setBigUint64(8, 0x4444444444444444n, true);
+                        throw buf;
+                    }
+                }
+            });
+            throw handler;
+        } catch(e) {}`
+    );
+
+    // スタックピボットを狙ったテスト
+    fuzzilli.testing(`
+        function stackPivot() {
+            let arr = [];
+            // スタックを大量に消費
+            for(let i = 0; i < 1000000; i++) {
+                arr.push(new ArrayBuffer(8));
+                let view = new DataView(arr[i]);
+                // ROP chainのような値を書き込む
+                view.setBigUint64(0, BigInt(i * 0x1000), true);
+            }
+            // 突然のスタック切り替えを試みる
+            arr.length = 0;
+            arr = null;
+            gc();
+            return arr;
+        }
+        try { stackPivot(); } catch(e) {}`
+    );
+
+    // 関数ポインタの解決を混乱させるテスト
+    fuzzilli.testing(`
+        let funcs = [];
+        for(let i = 0; i < 1000; i++) {
+            funcs.push(new Function('return ' + i));
+        }
+        // 関数テーブルの混乱を試みる
+        funcs.forEach(f => {
+            Object.defineProperty(f, 'caller', {
+                get() {
+                    let buf = new ArrayBuffer(8);
+                    let view = new DataView(buf);
+                    view.setBigUint64(0, 0x4545454545454545n, true);
+                    return buf;
+                }
+            });
+        });
+        try {
+            funcs[Math.floor(Math.random() * funcs.length)]();
+        } catch(e) {}`
+    );
+}
+
+// メモリレイアウトを混乱させるテストケース
+function generateMemoryLayoutCorruptionTests() {
+    // ヒープレイアウトの混乱
+    fuzzilli.testing(`
+        let arrays = [];
+        for(let i = 0; i < 1000; i++) {
+            // 8バイトアラインメントを意図的に崩す
+            arrays.push(new ArrayBuffer(i % 8 + 8));
+            let view = new DataView(arrays[i]);
+            view.setBigUint64(0, 0x4646464646464646n, true);
+            if (i % 2 === 0) {
+                arrays[i] = null;
+                gc();
+            }
+        }`
+    );
+
+    // 関数テーブルの混乱
+    fuzzilli.testing(`
+        let funcs = new Array(1000);
+        for(let i = 0; i < 1000; i++) {
+            funcs[i] = new Function('return 0x' + i.toString(16));
+            Object.defineProperty(funcs[i], Symbol.toPrimitive, {
+                get() {
+                    let buf = new ArrayBuffer(8);
+                    let view = new DataView(buf);
+                    view.setBigUint64(0, 0x4747474747474747n, true);
+                    return () => buf;
+                }
+            });
+        }`
+    );
+}
