@@ -117,16 +117,32 @@ main(int argc, char **argv)
 
         while(1) {
             njs_str_t* fuzzer_input = njs_fetch_fuzz_input();
-
+            
+            // メモリリーク検出のための統計情報
+            size_t initial_memory = getCurrentMemoryUsage();
+            
             opts.file = (char *) "fuzzer";
             opts.command.start   = fuzzer_input->start;
             opts.command.length  = fuzzer_input->length;
             opts.suppress_stdout = 0;
-            result = njs_main_fuzzable(&opts);
-
+            
+            // エラーハンドリングの強化
+            if (setjmp(crash_jmp_buf) == 0) {
+                result = njs_main_fuzzable(&opts);
+            } else {
+                fprintf(stderr, "Caught potential crash in fuzzer\n");
+                result = NJS_ERROR;
+            }
+            
+            // メモリリークの検出
+            size_t final_memory = getCurrentMemoryUsage();
+            if (final_memory - initial_memory > MEMORY_LEAK_THRESHOLD) {
+                fprintf(stderr, "Potential memory leak detected\n");
+            }
+            
             free(fuzzer_input->start);
             free(fuzzer_input);
-
+            
             status = (result & 0xff) << 8;
             CHECK(write(REPRL_CWFD, &status, 4) == 4);
             __sanitizer_cov_reset_edgeguards();

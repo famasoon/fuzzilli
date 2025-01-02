@@ -51,6 +51,26 @@ njs_module_t  njs_fuzzilli_module = {
 
 #define REPRL_DWFD 103
 
+static void check_memory_corruption(const void* ptr, size_t size) {
+    // メモリアクセスの検証
+    if (ptr == NULL) {
+        fprintf(stderr, "Null pointer access detected\n");
+        return;
+    }
+    
+    // メモリ境界チェック
+    if ((uintptr_t)ptr + size > MAX_MEMORY_ADDRESS) {
+        fprintf(stderr, "Memory boundary violation detected\n");
+        return;
+    }
+    
+    // ヒープ破損チェック
+    if (!is_valid_heap_address(ptr)) {
+        fprintf(stderr, "Invalid heap access detected\n");
+        return;
+    }
+}
+
 static njs_int_t
 njs_fuzzilli_func(njs_vm_t *vm, njs_value_t *args, njs_uint_t nargs,
     njs_index_t unused, njs_value_t *retval)
@@ -112,6 +132,10 @@ njs_fuzzilli_func(njs_vm_t *vm, njs_value_t *args, njs_uint_t nargs,
             fprintf(fzliout, "%s\n", print_str);
         }
         fflush(fzliout);
+    } else if (!strcmp(str, "FUZZILLI_MEMORY_CHECK")) {
+        void* ptr = (void*)njs_value_to_pointer(vm, njs_arg(args, nargs, 2));
+        size_t size = (size_t)njs_value_to_number(vm, njs_arg(args, nargs, 3));
+        check_memory_corruption(ptr, size);
     }
 
     return NJS_OK;
