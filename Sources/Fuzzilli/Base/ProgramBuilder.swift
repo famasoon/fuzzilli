@@ -1472,79 +1472,75 @@ public class ProgramBuilder {
         defer { buildStack.pop() }
         var remainingBudget = initialBuildingBudget
 
-        // Unless we are only splicing, find all generators that have the required context. We must always have at least one suitable code generator.
+        // 元のコンテキストを保存
         let origContext = context
+
+        // 利用可能なジェネレーターを初期化
         var availableGenerators = WeightedList<CodeGenerator>()
-        if state.mode != .splicing {
+        if mode != .splicing {
             availableGenerators = fuzzer.codeGenerators.filter({
-                $0.requiredContext.isSubset(of: origContext)
+                $0.requiredContext.isSubset(of: context)
             })
             assert(!availableGenerators.isEmpty)
         }
 
-        struct BuildLog {
-            enum ActionOutcome {
-                case success
-                case failed
-            }
-
-            struct BuildAction {
-                var action: String
-                var outcome: ActionOutcome?
-            }
-
-            var actions = [BuildAction]()
-
-            mutating func startAction(_ action: String) {
-                // Make sure that we have either completed our last build step or we haven't started any build steps yet.
-                assert(actions.isEmpty || actions[actions.count - 1].outcome != nil)
-                actions.append(BuildAction(action: action))
-            }
-
-            mutating func endAction(withOutcome outcome: ActionOutcome) {
-                assert(!actions.isEmpty && actions[actions.count - 1].outcome == nil)
-                actions[actions.count - 1].outcome = outcome
-            }
-
-        }
-
-        var buildLog = fuzzer.config.logLevel.isAtLeast(.verbose) ? BuildLog() : nil
-
         while remainingBudget > 0 {
-            assert(
-                context == origContext,
-                "Code generation or splicing must not change the current context")
+            assert(context == origContext)
 
-            // 失敗時のリカバリーロジックを追加
+            // 失敗時のリカバリーロジックを改善
             if consecutiveFailures >= maxConsecutiveFailures / 2 {
-                // 失敗が一定回数に達したら、より単純なジェネレーターを試す
-                availableGenerators = availableGenerators.filter { !$0.isRecursive }
-                
-                if availableGenerators.isEmpty {
-                    logger.warning("No suitable generators available after filtering. Attempting fallback...")
+                // より保守的なアプローチを取る
+                if mode == .generating {
+                    // まず再帰的なジェネレーターを除外
+                    availableGenerators = availableGenerators.filter { !$0.isRecursive }
                     
-                    // コンテキストチェックを追加
-                    if context.contains(.javascript) {
-                        // JavaScriptコンテキスト内でのみ基本的な値生成を試みる
-                        let result = buildValues(1)
-                        consecutiveFailures = 0
-                        remainingBudget -= result.generatedInstructions
-                        continue
-                    } else {
-                        // 不適切なコンテキストの場合は警告を出して次のイテレーションへ
-                        logger.warning("Cannot build values in current context: \(context)")
-                        // コンテキストに応じた別のフォールバック処理を試みる
-                        if let generator = findSimpleGeneratorForContext(context) {
-                            // ジェネレーターと重み（1）のタプルを作成
-                            availableGenerators = WeightedList([(generator, 1)])
-                        } else {
-                            consecutiveFailures += 1
-                            if consecutiveFailures >= maxConsecutiveFailures {
-                                logger.warning("Unable to recover in current context. Bailing out.")
-                                return
+                    if availableGenerators.isEmpty {
+                        logger.warning("Attempting recovery in context: \(context)")
+                        
+                        // コンテキストに基づいて適切なリカバリー戦略を選択
+                        switch context.rawValue {
+                        case 256: // 特定のコンテキスト値に対する処理
+                            // このコンテキストに特化した単純なジェネレーターを探す
+                            if let generator = findContextSpecificGenerator(context) {
+                                availableGenerators = WeightedList([(generator, 1)])
+                                consecutiveFailures = 0
+                                continue
+                            }
+                            
+                        case _ where context.contains(.javascript):
+                            // JavaScriptコンテキスト内での処理
+                            let result = buildValues(1)
+                            consecutiveFailures = 0
+                            remainingBudget -= result.generatedInstructions
+                            continue
+                            
+                        default:
+                            // その他のコンテキストでの処理
+                            if let generator = findSimpleGeneratorForContext(context) {
+                                availableGenerators = WeightedList([(generator, 1)])
+                                consecutiveFailures = 0
+                                continue
                             }
                         }
-                        continue
+                        
+                        // リカバリーに失敗した場合
+                        consecutiveFailures += 1
+                        if consecutiveFailures >= maxConsecutiveFailures {
+                            logger.warning("""
+                                Recovery failed in context \(context).
+                                Original context: \(origContext)
+                                Mode: \(mode)
+                                Remaining budget: \(remainingBudget)
+                                Bailing out.
+                                """)
+                            return
+                        }
+                    }
+                } else if mode == .splicing {
+                    // スプライシングモードの場合は新しいビルド状態で生成を試みる
+                    if probability(0.5) {
+                        buildInternal(initialBuildingBudget: remainingBudget, mode: .generating)
+                        return
                     }
                 }
             }
@@ -1576,15 +1572,13 @@ public class ProgramBuilder {
                 
                 // ジェネレーターが存在する場合のみ実行
                 if let generator = generator {
-                    buildLog?.startAction(generator.name)
                     run(generator)
                 } else {
-                    buildLog?.startAction("unknown generator")
+                    logger.warning("No suitable generator found for generating code")
                 }
 
             case .splicing:
                 let program = fuzzer.corpus.randomElementForSplicing()
-                buildLog?.startAction("splicing")
                 splice(from: program)
 
             default:
@@ -1595,10 +1589,8 @@ public class ProgramBuilder {
             let emittedInstructions = codeSizeAfter - codeSizeBefore
             remainingBudget -= emittedInstructions
             if emittedInstructions > 0 {
-                buildLog?.endAction(withOutcome: .success)
                 consecutiveFailures = 0
             } else {
-                buildLog?.endAction(withOutcome: .failed)
                 consecutiveFailures += 1
                 if consecutiveFailures >= maxConsecutiveFailures {
                     if state.mode != .splicing {
@@ -1611,12 +1603,6 @@ public class ProgramBuilder {
                             Bailing out.
                             """
                         )
-                        if let actions = buildLog?.actions {
-                            logger.verbose("Build log:")
-                            for action in actions {
-                                logger.verbose("    \(action.action): \(action.outcome!)")
-                            }
-                        }
                     }
                     return
                 }
@@ -1624,13 +1610,28 @@ public class ProgramBuilder {
         }
     }
 
-    // コンテキストに応じた単純なジェネレーターを見つけるヘルパー関数
-    private func findSimpleGeneratorForContext(_ context: Context) -> CodeGenerator? {
+    // コンテキスト固有のジェネレーターを見つけるヘルパー関数
+    private func findContextSpecificGenerator(_ context: Context) -> CodeGenerator? {
         return fuzzer.codeGenerators.first { generator in
+            // コンテキスト固有の条件をチェック
+            generator.requiredContext.isSubset(of: context) &&
+            !generator.isRecursive &&
+            generator.inputs.types.isEmpty &&  // .isEmptyを.types.isEmptyに変更
+            // 追加の安全性チェック
+            generator.requiredContext.rawValue & context.rawValue == generator.requiredContext.rawValue
+        }
+    }
+
+    // 既存のヘルパー関数を改善
+    private func findSimpleGeneratorForContext(_ context: Context) -> CodeGenerator? {
+        let candidates = fuzzer.codeGenerators.filter { generator in
             generator.requiredContext.isSubset(of: context) && 
             !generator.isRecursive &&
-            generator.inputs.count == 0
+            generator.inputs.types.isEmpty  // .isEmptyを.types.isEmptyに変更
         }
+        
+        // 最も単純なジェネレーターを選択
+        return candidates.min(by: { $0.requiredContext.rawValue < $1.requiredContext.rawValue })
     }
 
     /// Run ValueGenerators until we have created at least N new variables.
