@@ -66,28 +66,27 @@ public let codeGeneratorWeights: [String: Int] = [
     "ElementUpdateGenerator": 10,
 
     // WebAssembly関連のジェネレータ
-    "WasmGenerator": 50,                     // 基本的なWASM操作
-    "WasmMemoryOperationsGenerator": 40,     // メモリ操作
-    "WasmStructGenerator": 40,               // 構造体操作
-    "WasmTableGenerator": 40,                // テーブル操作
-    "WasmArrayGenerator": 40,                // 配列操作
-    "WasmGlobalGenerator": 40,               // グローバル変数
-    "WasmMemoryBoundaryTest": 30,           // メモリ境界テスト
-    "WasmConcurrentAccessTest": 25,         // 並行アクセステスト
-    "WasmTypeConversionTest": 35,           // 型変換テスト
-    "WasmMemoryFuzzer": 45,                // メモリファジング
-    "WasmMemoryGenerator": 40,             // メモリ生成
-    "WasmSIMDFuzzer": 45,                 // SIMDテスト
-    "SimpleWasmPromiseGenerator": 35,       // Promise APIテスト
-    "WasmJSPIExploitGenerator": 45,        // JSPIエクスプロイト
-    "RandomWasmBytesGenerator": 40,        // ランダムバイト列
+    "WasmGenerator": 40,                     // 基本的なWASM操作の重みを下げて安定性を向上
+    "WasmMemoryOperationsGenerator": 35,     // メモリ操作の重みを調整
+    "WasmStructGenerator": 35,               // 構造体操作の重みを調整
+    "WasmTableGenerator": 30,                // テーブル操作の優先度を下げる
+    "WasmArrayGenerator": 35,                // 配列操作は中程度の重みを維持
+    "WasmGlobalGenerator": 30,               // グローバル変数の重みを調整
+    "WasmMemoryBoundaryTest": 25,           // メモリ境界テストの頻度を下げる
+    "WasmConcurrentAccessTest": 20,         // 並行アクセステストの頻度を下げる
+    "WasmTypeConversionTest": 30,           // 型変換テストの重みを調整
+    "WasmMemoryFuzzer": 40,                // メモリファジングは重要なので維持
+    "WasmSIMDFuzzer": 35,                 // SIMDテストの重みを調整
+    "SimpleWasmPromiseGenerator": 30,      // Promise APIテストの頻度を調整
+    "WasmJSPIExploitGenerator": 35,       // JSPIエクスプロイトの重みを調整
+    "RandomWasmBytesGenerator": 35,       // ランダムバイト列生成の重みを調整
     "RandomWasmValuesGenerator": 40,       // ランダム値生成
-    "MaglevOptimizationGenerator": 40,     // Maglev最適化
-    "WasmFuzzer": 50,                     // 基本的なファジング
-    "ComplexWasmFuzzer": 50,              // 複雑なファジング
-    "ValueSerializerFuzzer": 40,          // シリアライザ
-    "RegExpFuzzer": 40,                   // 正規表現
-    "MapTransitionFuzzer": 40,            // マップ遷移
+    "MaglevOptimizationGenerator": 35,    // Maglev最適化の重みを調整
+    "WasmFuzzer": 45,                    // 基本的なファジングは重要なので高めに維持
+    "ComplexWasmFuzzer": 40,             // 複雑なファジングの重みを調整
+    "ValueSerializerFuzzer": 35,         // シリアライザの重みを調整
+    "RegExpFuzzer": 35,                  // 正規表現ファジングの重みを調整
+    "MapTransitionFuzzer": 35,           // マップ遷移の重みを調整
 
     // Special generators
     "WellKnownPropertyLoadGenerator": 5,
