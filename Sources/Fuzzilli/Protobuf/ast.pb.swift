@@ -22,6 +22,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import Foundation
 import SwiftProtobuf
 
 // If the compiler emits an error on this type, it is because this file
@@ -2283,6 +2284,150 @@ public struct Compiler_Protobuf_Expression: @unchecked Sendable {
   public init() {}
 
   fileprivate var _storage = _StorageClass.defaultInstance
+}
+
+public struct Compiler_Protobuf_WasmNode: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  public enum WasmType: SwiftProtobuf.Enum, Swift.CaseIterable {
+    public typealias RawValue = Int
+    case i32 // = 0
+    case i64 // = 1
+    case f32 // = 2
+    case f64 // = 3
+
+    /// SIMDサポート用
+    case v128 // = 4
+    case UNRECOGNIZED(Int)
+
+    public init() {
+      self = .i32
+    }
+
+    public init?(rawValue: Int) {
+      switch rawValue {
+      case 0: self = .i32
+      case 1: self = .i64
+      case 2: self = .f32
+      case 3: self = .f64
+      case 4: self = .v128
+      default: self = .UNRECOGNIZED(rawValue)
+      }
+    }
+
+    public var rawValue: Int {
+      switch self {
+      case .i32: return 0
+      case .i64: return 1
+      case .f32: return 2
+      case .f64: return 3
+      case .v128: return 4
+      case .UNRECOGNIZED(let i): return i
+      }
+    }
+
+    // The compiler won't synthesize support with the UNRECOGNIZED case.
+    public static let allCases: [Compiler_Protobuf_WasmNode.WasmType] = [
+      .i32,
+      .i64,
+      .f32,
+      .f64,
+      .v128,
+    ]
+
+  }
+
+  public struct WasmMemory: Sendable {
+    // SwiftProtobuf.Message conformance is added in an extension below. See the
+    // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+    // methods supported on all messages.
+
+    public var initial: UInt32 = 0
+
+    public var maximum: UInt32 {
+      get {return _maximum ?? 0}
+      set {_maximum = newValue}
+    }
+    /// Returns true if `maximum` has been explicitly set.
+    public var hasMaximum: Bool {return self._maximum != nil}
+    /// Clears the value of `maximum`. Subsequent reads from it will return its default value.
+    public mutating func clearMaximum() {self._maximum = nil}
+
+    /// 共有メモリサポート
+    public var shared: Bool = false
+
+    public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+    public init() {}
+
+    fileprivate var _maximum: UInt32? = nil
+  }
+
+  public struct WasmFunction: @unchecked Sendable {
+    // SwiftProtobuf.Message conformance is added in an extension below. See the
+    // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+    // methods supported on all messages.
+
+    public var params: [Compiler_Protobuf_WasmNode.WasmType] = []
+
+    public var results: [Compiler_Protobuf_WasmNode.WasmType] = []
+
+    public var code: Data = Data()
+
+    public var exported: Bool = false
+
+    public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+    public init() {}
+  }
+
+  public struct WasmGlobal: @unchecked Sendable {
+    // SwiftProtobuf.Message conformance is added in an extension below. See the
+    // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+    // methods supported on all messages.
+
+    public var type: Compiler_Protobuf_WasmNode.WasmType = .i32
+
+    public var mutable: Bool = false
+
+    public var initExpr: Data = Data()
+
+    public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+    public init() {}
+  }
+
+  public struct WasmTable: Sendable {
+    // SwiftProtobuf.Message conformance is added in an extension below. See the
+    // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+    // methods supported on all messages.
+
+    public var initial: UInt32 = 0
+
+    public var maximum: UInt32 {
+      get {return _maximum ?? 0}
+      set {_maximum = newValue}
+    }
+    /// Returns true if `maximum` has been explicitly set.
+    public var hasMaximum: Bool {return self._maximum != nil}
+    /// Clears the value of `maximum`. Subsequent reads from it will return its default value.
+    public mutating func clearMaximum() {self._maximum = nil}
+
+    /// funcref/externref
+    public var elementType: String = String()
+
+    public var unknownFields = SwiftProtobuf.UnknownStorage()
+
+    public init() {}
+
+    fileprivate var _maximum: UInt32? = nil
+  }
+
+  public init() {}
 }
 
 // MARK: - Code below here is support for the SwiftProtobuf runtime.
@@ -7421,6 +7566,225 @@ extension Compiler_Protobuf_Expression: SwiftProtobuf.Message, SwiftProtobuf._Me
       }
       if !storagesAreEqual {return false}
     }
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Compiler_Protobuf_WasmNode: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = _protobuf_package + ".WasmNode"
+  public static let _protobuf_nameMap = SwiftProtobuf._NameMap()
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    // Load everything into unknown fields
+    while try decoder.nextFieldNumber() != nil {}
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Compiler_Protobuf_WasmNode, rhs: Compiler_Protobuf_WasmNode) -> Bool {
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Compiler_Protobuf_WasmNode.WasmType: SwiftProtobuf._ProtoNameProviding {
+  public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
+    0: .same(proto: "I32"),
+    1: .same(proto: "I64"),
+    2: .same(proto: "F32"),
+    3: .same(proto: "F64"),
+    4: .same(proto: "V128"),
+  ]
+}
+
+extension Compiler_Protobuf_WasmNode.WasmMemory: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = Compiler_Protobuf_WasmNode.protoMessageName + ".WasmMemory"
+  public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
+    1: .same(proto: "initial"),
+    2: .same(proto: "maximum"),
+    3: .same(proto: "shared"),
+  ]
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularUInt32Field(value: &self.initial) }()
+      case 2: try { try decoder.decodeSingularUInt32Field(value: &self._maximum) }()
+      case 3: try { try decoder.decodeSingularBoolField(value: &self.shared) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    if self.initial != 0 {
+      try visitor.visitSingularUInt32Field(value: self.initial, fieldNumber: 1)
+    }
+    try { if let v = self._maximum {
+      try visitor.visitSingularUInt32Field(value: v, fieldNumber: 2)
+    } }()
+    if self.shared != false {
+      try visitor.visitSingularBoolField(value: self.shared, fieldNumber: 3)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Compiler_Protobuf_WasmNode.WasmMemory, rhs: Compiler_Protobuf_WasmNode.WasmMemory) -> Bool {
+    if lhs.initial != rhs.initial {return false}
+    if lhs._maximum != rhs._maximum {return false}
+    if lhs.shared != rhs.shared {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Compiler_Protobuf_WasmNode.WasmFunction: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = Compiler_Protobuf_WasmNode.protoMessageName + ".WasmFunction"
+  public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
+    1: .same(proto: "params"),
+    2: .same(proto: "results"),
+    3: .same(proto: "code"),
+    4: .same(proto: "exported"),
+  ]
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeRepeatedEnumField(value: &self.params) }()
+      case 2: try { try decoder.decodeRepeatedEnumField(value: &self.results) }()
+      case 3: try { try decoder.decodeSingularBytesField(value: &self.code) }()
+      case 4: try { try decoder.decodeSingularBoolField(value: &self.exported) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.params.isEmpty {
+      try visitor.visitPackedEnumField(value: self.params, fieldNumber: 1)
+    }
+    if !self.results.isEmpty {
+      try visitor.visitPackedEnumField(value: self.results, fieldNumber: 2)
+    }
+    if !self.code.isEmpty {
+      try visitor.visitSingularBytesField(value: self.code, fieldNumber: 3)
+    }
+    if self.exported != false {
+      try visitor.visitSingularBoolField(value: self.exported, fieldNumber: 4)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Compiler_Protobuf_WasmNode.WasmFunction, rhs: Compiler_Protobuf_WasmNode.WasmFunction) -> Bool {
+    if lhs.params != rhs.params {return false}
+    if lhs.results != rhs.results {return false}
+    if lhs.code != rhs.code {return false}
+    if lhs.exported != rhs.exported {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Compiler_Protobuf_WasmNode.WasmGlobal: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = Compiler_Protobuf_WasmNode.protoMessageName + ".WasmGlobal"
+  public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
+    1: .same(proto: "type"),
+    2: .same(proto: "mutable"),
+    3: .standard(proto: "init_expr"),
+  ]
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularEnumField(value: &self.type) }()
+      case 2: try { try decoder.decodeSingularBoolField(value: &self.mutable) }()
+      case 3: try { try decoder.decodeSingularBytesField(value: &self.initExpr) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if self.type != .i32 {
+      try visitor.visitSingularEnumField(value: self.type, fieldNumber: 1)
+    }
+    if self.mutable != false {
+      try visitor.visitSingularBoolField(value: self.mutable, fieldNumber: 2)
+    }
+    if !self.initExpr.isEmpty {
+      try visitor.visitSingularBytesField(value: self.initExpr, fieldNumber: 3)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Compiler_Protobuf_WasmNode.WasmGlobal, rhs: Compiler_Protobuf_WasmNode.WasmGlobal) -> Bool {
+    if lhs.type != rhs.type {return false}
+    if lhs.mutable != rhs.mutable {return false}
+    if lhs.initExpr != rhs.initExpr {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Compiler_Protobuf_WasmNode.WasmTable: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  public static let protoMessageName: String = Compiler_Protobuf_WasmNode.protoMessageName + ".WasmTable"
+  public static let _protobuf_nameMap: SwiftProtobuf._NameMap = [
+    1: .same(proto: "initial"),
+    2: .same(proto: "maximum"),
+    3: .standard(proto: "element_type"),
+  ]
+
+  public mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularUInt32Field(value: &self.initial) }()
+      case 2: try { try decoder.decodeSingularUInt32Field(value: &self._maximum) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self.elementType) }()
+      default: break
+      }
+    }
+  }
+
+  public func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    // The use of inline closures is to circumvent an issue where the compiler
+    // allocates stack space for every if/case branch local when no optimizations
+    // are enabled. https://github.com/apple/swift-protobuf/issues/1034 and
+    // https://github.com/apple/swift-protobuf/issues/1182
+    if self.initial != 0 {
+      try visitor.visitSingularUInt32Field(value: self.initial, fieldNumber: 1)
+    }
+    try { if let v = self._maximum {
+      try visitor.visitSingularUInt32Field(value: v, fieldNumber: 2)
+    } }()
+    if !self.elementType.isEmpty {
+      try visitor.visitSingularStringField(value: self.elementType, fieldNumber: 3)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  public static func ==(lhs: Compiler_Protobuf_WasmNode.WasmTable, rhs: Compiler_Protobuf_WasmNode.WasmTable) -> Bool {
+    if lhs.initial != rhs.initial {return false}
+    if lhs._maximum != rhs._maximum {return false}
+    if lhs.elementType != rhs.elementType {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

@@ -471,3 +471,38 @@ message Expression {
         CallSuperConstructor callSuperConstructor = 28;
     }
 }
+
+message WasmNode {
+    enum WasmType {
+        I32 = 0;
+        I64 = 1;
+        F32 = 2;
+        F64 = 3;
+        V128 = 4;    // SIMDサポート用
+    }
+
+    message WasmMemory {
+        uint32 initial = 1;
+        optional uint32 maximum = 2;
+        bool shared = 3;      // 共有メモリサポート
+    }
+
+    message WasmFunction {
+        repeated WasmType params = 1;
+        repeated WasmType results = 2;
+        bytes code = 3;
+        bool exported = 4;
+    }
+
+    message WasmGlobal {
+        WasmType type = 1;
+        bool mutable = 2;
+        bytes init_expr = 3;
+    }
+
+    message WasmTable {
+        uint32 initial = 1;
+        optional uint32 maximum = 2;
+        string element_type = 3;  // funcref/externref
+    }
+}

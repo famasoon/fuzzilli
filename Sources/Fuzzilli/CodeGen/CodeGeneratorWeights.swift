@@ -224,4 +224,8 @@ public let codeGeneratorWeights: [String: Int] = [
 
     // WebAssembly関連のジェネレータ
     "RandomWasmValuesGenerator": 40,  // 他のWASMジェネレータと同程度の重み
+    // エッジケース
+    "WasmMemoryBoundaryTest": 30,
+    "WasmConcurrentAccessTest": 25,
+    "WasmTypeConversionTest": 35
 ]

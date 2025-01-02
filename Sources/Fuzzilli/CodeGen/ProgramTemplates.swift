@@ -626,10 +626,18 @@ public let ProgramTemplates = [
             // 複雑なインポートオブジェクトの作成
             let importObj = b.createObject(with: [
                 "env": b.createObject(with: [
-                    "memory": b.construct(b.getProperty("Memory", of: WebAssembly), 
-                                       withArgs: [b.loadInt(1)]),
-                    "table": b.construct(b.getProperty("Table", of: WebAssembly),
-                                      withArgs: [b.loadInt(10), b.loadString("anyfunc")]),
+                    "memory": b.construct(b.getProperty("Memory", of: b.loadBuiltin("WebAssembly")), withArgs: [
+                        b.createObject(with: [
+                            "initial": b.loadInt(1),
+                            "maximum": b.loadInt(10)
+                        ])
+                    ]),
+                    "table": b.construct(b.getProperty("Table", of: b.loadBuiltin("WebAssembly")), withArgs: [
+                        b.createObject(with: [
+                            "initial": b.loadInt(10),
+                            "element": b.loadString("funcref")
+                        ])
+                    ]),
                     "log": b.buildPlainFunction(with: .parameters(n: 1)) { args in
                         b.doReturn(args[0])
                     },
@@ -654,6 +662,52 @@ public let ProgramTemplates = [
             
         }, catchBody: { error in
             b.loadUndefined()
+        })
+    },
+
+    ProgramTemplate("ComplexWasmTest") { b in
+        b.buildTryCatchFinally(tryBody: {
+            // 1. モジュールの準備
+            let wasmBytes = b.createArray(with: [
+                b.loadInt(0x0061736d),  // マジックナンバー
+                b.loadInt(0x01000000)   // バージョン
+            ])
+            let module = b.construct(b.getProperty("Module", of: b.loadBuiltin("WebAssembly")), 
+                                   withArgs: [wasmBytes])
+            
+            // 2. インポートオブジェクトの作成
+            let importObj = b.createObject(with: [
+                "env": b.createObject(with: [
+                    "memory": b.construct(b.getProperty("Memory", of: b.loadBuiltin("WebAssembly")), withArgs: [
+                        b.createObject(with: [
+                            "initial": b.loadInt(1),
+                            "maximum": b.loadInt(10)
+                        ])
+                    ]),
+                    "table": b.construct(b.getProperty("Table", of: b.loadBuiltin("WebAssembly")), withArgs: [
+                        b.createObject(with: [
+                            "initial": b.loadInt(10),
+                            "element": b.loadString("funcref")
+                        ])
+                    ]),
+                    "log": b.buildPlainFunction(with: .parameters(n: 1)) { args in
+                        b.doReturn(args[0])
+                    }
+                ])
+            ])
+            
+            // 3. インスタンス化とエクスポート関数の実行
+            let instance = b.instantiateWasm(module, imports: [importObj])
+            
+            // 4. メモリ操作
+            let memory = b.getWasmMemory(instance)
+            b.writeWasmMemory(memory, offset: Int64.random(in: 0...1024), 
+                             values: Array(repeating: UInt8.random(in: 0...255), count: 100))
+            
+            // 5. 関数呼び出し
+            let exports = b.getProperty("exports", of: instance)
+            let wasmFunc = b.getProperty("test_func", of: exports)
+            b.callFunction(wasmFunc, withArgs: [b.loadInt(42)])
         })
     }
 ]
