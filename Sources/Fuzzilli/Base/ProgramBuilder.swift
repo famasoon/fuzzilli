@@ -1524,11 +1524,10 @@ public class ProgramBuilder {
                 if availableGenerators.isEmpty {
                     logger.warning("No suitable generators available after filtering. Attempting fallback...")
                     // フォールバック: 最も基本的な値の生成を試みる
-                    if let result = buildValues(1) {
-                        consecutiveFailures = 0
-                        remainingBudget -= result.generatedInstructions
-                        continue
-                    }
+                    let result = buildValues(1)
+                    consecutiveFailures = 0
+                    remainingBudget -= result.generatedInstructions
+                    continue
                 }
             }
 
