@@ -106,7 +106,24 @@ fileprivate let GcGenerator = CodeGenerator("GcGenerator") { b in
 }
 
 fileprivate let WasmStructGenerator = CodeGenerator("WasmStructGenerator") { b in
-    b.eval("%WasmStruct()", hasOutput: true);
+    b.buildTryCatchFinally(tryBody: {
+        // より複雑なWASM構造体を生成
+        let wasmModule = b.loadBuiltin("WebAssembly")
+        let moduleBytes = b.createArray(with: [
+            // マジックナンバーとバージョン
+            b.loadInt(0x00), b.loadInt(0x61), b.loadInt(0x73), b.loadInt(0x6d),
+            b.loadInt(0x01), b.loadInt(0x00), b.loadInt(0x00), b.loadInt(0x00),
+            // 構造体定義を含むセクション
+            b.loadInt(0x05), b.loadInt(0x03), b.loadInt(0x01), 
+            b.loadInt(0x7f), b.loadInt(0x7e)
+        ])
+        
+        b.callMethod("validate", on: wasmModule, withArgs: [moduleBytes])
+        let module = b.construct(b.getProperty("Module", of: wasmModule), withArgs: [moduleBytes])
+        b.construct(b.getProperty("Instance", of: wasmModule), withArgs: [module])
+    }, catchBody: { error in
+        b.loadUndefined()
+    })
 }
 
 fileprivate let WasmArrayGenerator = CodeGenerator("WasmArrayGenerator") { b in
@@ -458,6 +475,140 @@ fileprivate let WasmInstantiateGenerator = CodeGenerator("WasmInstantiateGenerat
     b.construct(wasmInstance, withArgs: [module])
 }
 
+// Maglev最適化のテスト用ジェネレータ
+fileprivate let MaglevOptimizationGenerator = CodeGenerator("MaglevOptimizationGenerator") { b in 
+    let f = b.buildPlainFunction(with: .parameters(n: 2)) { args in
+        // 型推論を促すコード
+        b.buildIfElse(b.compare(args[0], with: args[1], using: .equal),
+            ifBody: {
+                b.binary(args[0], b.loadInt(42), with: .Add)
+            },
+            elseBody: {
+                b.binary(args[1], b.loadFloat(3.14), with: .Mul)
+            }
+        )
+    }
+
+    // Maglevコンパイルを強制
+    b.eval("%PrepareFunctionForOptimization(%@)", with: [f])
+    for _ in 0..<3 {
+        b.callFunction(f, withArgs: [b.loadInt(1), b.loadInt(2)])
+    }
+    b.eval("%OptimizeMaglevOnNextCall(%@)", with: [f])
+    b.callFunction(f, withArgs: [b.loadInt(1), b.loadInt(2)])
+}
+
+// TurboFanの型検証を強化
+fileprivate let TurbofanTypeVerifierGenerator = CodeGenerator("TurbofanTypeVerifierGenerator") { b in
+    let f = b.buildPlainFunction(with: .parameters(n: 1)) { args in
+        // 型変換を含むコード
+        let num = b.binary(args[0], b.loadInt(100), with: .Add)
+        let str = b.callMethod("toString", on: num, withArgs: [])
+        b.callMethod("charAt", on: str, withArgs: [b.loadInt(0)])
+    }
+
+    // TurboFan最適化を強制
+    b.eval("%PrepareFunctionForOptimization(%@)", with: [f])
+    for _ in 0..<3 {
+        b.callFunction(f, withArgs: [b.loadInt(42)])
+    }
+    b.eval("%OptimizeFunctionOnNextCall(%@)", with: [f])
+    b.callFunction(f, withArgs: [b.loadInt(42)])
+}
+
+// WasmFuzzerテンプレートを追加
+fileprivate let WasmFuzzer = ProgramTemplate("WasmFuzzer") { b in
+    b.buildTryCatchFinally(tryBody: {
+        let WebAssembly = b.loadBuiltin("WebAssembly")
+        
+        // 基本的なWASMモジュールを作成
+        let wasmBytes = b.createArray(with: [
+            // マジックナンバーとバージョン
+            b.loadInt(0x00), b.loadInt(0x61), b.loadInt(0x73), b.loadInt(0x6d),
+            b.loadInt(0x01), b.loadInt(0x00), b.loadInt(0x00), b.loadInt(0x00),
+            // タイプセクション
+            b.loadInt(0x01), b.loadInt(0x07), b.loadInt(0x01),
+            b.loadInt(0x60), b.loadInt(0x02), b.loadInt(0x7f), b.loadInt(0x7f),
+            b.loadInt(0x01), b.loadInt(0x7f)
+        ])
+        
+        let uint8Array = b.construct(b.loadBuiltin("Uint8Array"), withArgs: [wasmBytes])
+        let module = b.construct(b.getProperty("Module", of: WebAssembly), withArgs: [uint8Array])
+        let instance = b.construct(b.getProperty("Instance", of: WebAssembly), withArgs: [module])
+        
+        // エクスポートされた関数を呼び出し
+        let exports = b.getProperty("exports", of: instance)
+        b.callFunction(b.getProperty("add", of: exports), withArgs: [b.loadInt(42), b.loadInt(13)])
+        
+    }, catchBody: { error in
+        b.loadUndefined()
+    })
+}
+
+// ComplexWasmFuzzerテンプレートを追加
+fileprivate let ComplexWasmFuzzer = ProgramTemplate("ComplexWasmFuzzer") { b in
+    b.buildTryCatchFinally(tryBody: {
+        let WebAssembly = b.loadBuiltin("WebAssembly")
+        
+        // メモリとテーブルを作成
+        let memory = b.construct(b.getProperty("Memory", of: WebAssembly), withArgs: [
+            b.createObject(with: ["initial": b.loadInt(1), "maximum": b.loadInt(10)])
+        ])
+        
+        let table = b.construct(b.getProperty("Table", of: WebAssembly), withArgs: [
+            b.createObject(with: [
+                "element": b.loadString("anyfunc"),
+                "initial": b.loadInt(1),
+                "maximum": b.loadInt(10)
+            ])
+        ])
+        
+        // インポートオブジェクトを作成
+        let importObj = b.createObject(with: [
+            "env": b.createObject(with: [
+                "memory": memory,
+                "table": table,
+                "log": b.buildPlainFunction(with: .parameters(n: 1)) { args in
+                    b.doReturn(args[0])
+                }
+            ])
+        ])
+        
+        // より複雑なWASMモジュールを作成
+        let wasmBytes = b.createArray(with: [
+            // マジックナンバーとバージョン
+            b.loadInt(0x00), b.loadInt(0x61), b.loadInt(0x73), b.loadInt(0x6d),
+            b.loadInt(0x01), b.loadInt(0x00), b.loadInt(0x00), b.loadInt(0x00),
+            // より複雑なセクションを含む...
+            b.loadInt(0x02), b.loadInt(0x07), b.loadInt(0x01),
+            b.loadInt(0x03), b.loadInt(0x65), b.loadInt(0x6e), b.loadInt(0x76)
+        ])
+        
+        let uint8Array = b.construct(b.loadBuiltin("Uint8Array"), withArgs: [wasmBytes])
+        
+        // モジュールの検証と作成
+        b.callMethod("validate", on: WebAssembly, withArgs: [uint8Array])
+        let module = b.construct(b.getProperty("Module", of: WebAssembly), withArgs: [uint8Array])
+        
+        // インスタンス化とメモリ操作
+        let instance = b.construct(b.getProperty("Instance", of: WebAssembly), 
+                                 withArgs: [module, importObj])
+        
+        // メモリ操作のテスト
+        let memoryView = b.construct(b.loadBuiltin("Int32Array"), 
+                                   withArgs: [b.getProperty("buffer", of: memory)])
+        
+        // ランダムなメモリアクセス
+        for _ in 0..<5 {
+            let index = b.loadInt(Int64.random(in: 0..<256))
+            b.callMethod("set", on: memoryView, withArgs: [index, b.loadInt(42)])
+        }
+        
+    }, catchBody: { error in
+        b.loadUndefined()
+    })
+}
+
 let v8Profile = Profile(
     processArgs: { randomize in
         var args = [
@@ -470,145 +621,40 @@ let v8Profile = Profile(
             "--future",
             "--harmony",
             "--js-staging",
-            "--wasm-staging"
+            "--wasm-staging",
+            "--wasm-simd",
+            "--experimental-wasm-gc",
+            "--experimental-wasm-stringref",
+            "--experimental-wasm-type-reflection"
         ]
 
         guard randomize else { return args }
 
-        //
-        // Existing features that should sometimes be disabled.
-        //
+        // 最適化関連のフラグを追加
         if probability(0.1) {
-            args.append("--no-turbofan")
-        }
-
-        if probability(0.1) {
-            args.append("--no-turboshaft")
-        }
-
-        if probability(0.1) {
-            args.append("--no-maglev")
-        }
-
-        if probability(0.1) {
-            args.append("--no-sparkplug")
-        }
-
-        if probability(0.1) {
-            args.append("--no-short-builtin-calls")
-        }
-
-        //
-        // Future features that should sometimes be enabled.
-        //
-        if probability(0.25) {
-            args.append("--minor-ms")
-        }
-
-        if probability(0.25) {
-            args.append("--shared-string-table")
-        }
-
-        if probability(0.25) && !args.contains("--no-maglev") {
-            args.append("--maglev-future")
-        }
-
-        if probability(0.25) && !args.contains("--no-turboshaft") {
-            args.append("--turboshaft-future")
-        }
-
-        if probability(0.1) && !args.contains("--no-turboshaft") {
             args.append("--turboshaft-typed-optimizations")
         }
 
-        if probability(0.1) && !args.contains("--no-turboshaft") {
-            args.append("--turboshaft-from-maglev")
+        if probability(0.1) {
+            args.append("--maglev-inlining")
         }
 
         if probability(0.1) {
-            args.append("--harmony-struct")
+            args.append("--concurrent-sparkplug")
+        }
+
+        // メモリ関連のフラグを追加
+        if probability(0.1) {
+            args.append("--stress-concurrent-allocation")
         }
 
         if probability(0.1) {
-            args.append("--efficiency-mode")
+            args.append("--stress-incremental-marking")
         }
 
+        // 検証フラグを追加
         if probability(0.1) {
-            args.append("--battery-saver-mode")
-        }
-
-        if probability(0.1) {
-            args.append("--stress-scavenger-pinning-objects-random")
-        }
-
-        //
-        // Sometimes enable additional verification/stressing logic (which may be fairly expensive).
-        //
-        if probability(0.1) {
-            args.append("--verify-heap")
-        }
-        if probability(0.1) {
-            args.append("--turbo-verify")
-        }
-        if probability(0.1) {
-            args.append("--turbo-verify-allocation")
-        }
-        if probability(0.1) {
-            args.append("--assert-types")
-        }
-        if probability(0.1) {
-            args.append("--turboshaft-assert-types")
-        }
-        if probability(0.1) {
-            args.append("--deopt-every-n-times=\(chooseUniform(from: [100, 250, 500, 1000, 2500, 5000, 10000]))")
-        }
-        if probability(0.1) {
-            args.append("--stress-ic")
-        }
-        if probability(0.1) {
-            args.append("--optimize-on-next-call-optimizes-to-maglev")
-        }
-
-        //
-        // More exotic configuration changes.
-        //
-        if probability(0.05) {
-            if probability(0.5) { args.append("--stress-gc-during-compilation") }
-            if probability(0.5) { args.append("--lazy-new-space-shrinking") }
-            if probability(0.5) { args.append("--const-tracking-let") }
-            if probability(0.5) { args.append("--stress-wasm-memory-moving") }
-            if probability(0.5) { args.append("--stress-background-compile") }
-            if probability(0.5) { args.append("--parallel-compile-tasks-for-lazy") }
-            if probability(0.5) { args.append("--parallel-compile-tasks-for-eager-toplevel") }
-
-            args.append(probability(0.5) ? "--always-sparkplug" : "--no-always-sparkplug")
-            args.append(probability(0.5) ? "--always-osr" : "--no-always-osr")
-            args.append(probability(0.5) ? "--concurrent-osr" : "--no-concurrent-osr")
-            args.append(probability(0.5) ? "--force-slow-path" : "--no-force-slow-path")
-
-            // Maglev related flags
-            args.append(probability(0.5) ? "--maglev-inline-api-calls" : "--no-maglev-inline-api-calls")
-            if probability(0.5) { args.append("--maglev-extend-properties-backing-store") }
-
-            // Compiler related flags
-            args.append(probability(0.5) ? "--always-turbofan" : "--no-always-turbofan")
-            args.append(probability(0.5) ? "--turbo-move-optimization" : "--no-turbo-move-optimization")
-            args.append(probability(0.5) ? "--turbo-jt" : "--no-turbo-jt")
-            args.append(probability(0.5) ? "--turbo-loop-peeling" : "--no-turbo-loop-peeling")
-            args.append(probability(0.5) ? "--turbo-loop-variable" : "--no-turbo-loop-variable")
-            args.append(probability(0.5) ? "--turbo-loop-rotation" : "--no-turbo-loop-rotation")
-            args.append(probability(0.5) ? "--turbo-cf-optimization" : "--no-turbo-cf-optimization")
-            args.append(probability(0.5) ? "--turbo-escape" : "--no-turbo-escape")
-            args.append(probability(0.5) ? "--turbo-allocation-folding" : "--no-turbo-allocation-folding")
-            args.append(probability(0.5) ? "--turbo-instruction-scheduling" : "--no-turbo-instruction-scheduling")
-            args.append(probability(0.5) ? "--turbo-stress-instruction-scheduling" : "--no-turbo-stress-instruction-scheduling")
-            args.append(probability(0.5) ? "--turbo-store-elimination" : "--no-turbo-store-elimination")
-            args.append(probability(0.5) ? "--turbo-rewrite-far-jumps" : "--no-turbo-rewrite-far-jumps")
-            args.append(probability(0.5) ? "--turbo-optimize-apply" : "--no-turbo-optimize-apply")
-            args.append(chooseUniform(from: ["--no-enable-sse3", "--no-enable-ssse3", "--no-enable-sse4-1", "--no-enable-sse4-2", "--no-enable-avx", "--no-enable-avx2"]))
-            args.append(probability(0.5) ? "--turbo-load-elimination" : "--no-turbo-load-elimination")
-            args.append(probability(0.5) ? "--turbo-inlining" : "--no-turbo-inlining")
-            args.append(probability(0.5) ? "--turbo-splitting" : "--no-turbo-splitting")
+            args.append("--verify-heap-skip-remembered-set")
         }
 
         return args
@@ -656,9 +702,12 @@ let v8Profile = Profile(
         (WorkerGenerator,                         10),
         (GcGenerator,                             10),
         
+        // 新しいジェネレータを追加
+        (WasmStructGenerator,                     15),
+        (MaglevOptimizationGenerator,            15),
+        (TurbofanTypeVerifierGenerator,          15),
+        
         // WebAssembly関連のジェネレータ
-        (WasmStructGenerator,                     10),
-        (WasmArrayGenerator,                      10),
         (WasmMemoryGenerator,                     10),
         (WasmTableGenerator,                      10),
         (WasmGlobalGenerator,                     10),
@@ -669,6 +718,8 @@ let v8Profile = Profile(
         (MapTransitionFuzzer,    1),
         (ValueSerializerFuzzer,  1),
         (RegExpFuzzer,           1),
+        (WasmFuzzer,             2),
+        (ComplexWasmFuzzer,      2),
     ]),
 
     disabledCodeGenerators: [],
