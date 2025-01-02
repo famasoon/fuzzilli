@@ -130,6 +130,75 @@ njs_fuzzilli_func(njs_vm_t *vm, njs_value_t *args, njs_uint_t nargs,
         njs_object_value_init(&obj);
         
         njs_object_prototype_set(vm, &obj, &proto);
+    } else if (!strcmp(str, "FUZZILLI_MEMORY_TEST")) {
+        // メモリ管理のテストケース
+        
+        // 1. 大きな配列の作成と解放
+        njs_value_t array;
+        njs_array_alloc(vm, &array, 1000000);
+        
+        // 2. 循環参照の作成
+        njs_value_t obj1, obj2;
+        njs_object_value_init(&obj1);
+        njs_object_value_init(&obj2);
+        
+        njs_object_prop_set(vm, &obj1, "ref", &obj2);
+        njs_object_prop_set(vm, &obj2, "ref", &obj1);
+        
+        // 3. メモリプールのストレステスト
+        for (int i = 0; i < 100; i++) {
+            njs_value_t temp;
+            njs_string_value_init(&temp, (u_char*)"test", 4);
+            njs_vm_value_string_set(vm, &temp, (u_char*)"long string for testing", 21);
+        }
+        
+        // 4. GCの強制実行
+        njs_vm_memory_gc(vm);
+        
+        // 5. 弱参照のテスト
+        njs_value_t weak_ref;
+        njs_object_value_init(&weak_ref);
+        njs_value_weak_set(vm, &weak_ref, &obj1);
+        
+        // 6. メモリフラグメンテーションのテスト
+        for (int i = 0; i < 1000; i++) {
+            size_t size = (i % 10) * 1024;  // ランダムなサイズ
+            void* ptr = njs_mp_alloc(vm->mem_pool, size);
+            if (i % 2 == 0) {
+                njs_mp_free(vm->mem_pool, ptr);
+            }
+        }
+        
+        // 7. エラー状態でのメモリリーク検出
+        njs_value_t error;
+        njs_error_value_init(vm, &error, NJS_ERROR);
+        
+        // 8. スタック操作のテスト
+        njs_value_t stack_values[100];
+        for (int i = 0; i < 100; i++) {
+            njs_value_undefined_set(&stack_values[i]);
+            njs_vm_stack_push(vm, &stack_values[i]);
+        }
+        
+        // 9. メモリ境界のテスト
+        char* large_string = malloc(NJS_STRING_MAX_LENGTH + 1);
+        memset(large_string, 'A', NJS_STRING_MAX_LENGTH);
+        large_string[NJS_STRING_MAX_LENGTH] = '\0';
+        
+        njs_value_t large_str_val;
+        njs_string_value_init(&large_str_val, (u_char*)large_string, NJS_STRING_MAX_LENGTH);
+        
+        free(large_string);
+        
+        // 10. メモリプールの再利用テスト
+        njs_mp_t *temp_pool = njs_mp_create(1024, 128, 64, 32);
+        if (temp_pool != NULL) {
+            for (int i = 0; i < 50; i++) {
+                void* ptr = njs_mp_alloc(temp_pool, 64);
+                njs_mp_free(temp_pool, ptr);
+            }
+            njs_mp_destroy(temp_pool);
+        }
     }
 
     return NJS_OK;
