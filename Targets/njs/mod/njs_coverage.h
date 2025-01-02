@@ -9,3 +9,12 @@ struct shmem_data {
 
 #define SHM_SIZE 0x100000
 #define MAX_EDGES ((SHM_SIZE - 4) * 8)
+
+#define EDGE_COUNTER_SIZE 65536
+#define EDGE_COUNTER_MASK (EDGE_COUNTER_SIZE - 1)
+
+struct coverage_data {
+    uint32_t num_edges;
+    uint8_t edges[EDGE_COUNTER_SIZE];
+    uint32_t hit_count[EDGE_COUNTER_SIZE];
+};

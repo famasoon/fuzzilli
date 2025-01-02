@@ -149,8 +149,16 @@ main(int argc, char **argv)
         result = njs_process_file(&opts);
         engine->destroy(engine);
 
+        njs_set_exception_handler(engine, njs_exception_handler);
     }
 
     return result;
+}
+
+
+static void njs_exception_handler(njs_vm_t *vm, njs_value_t *value) {
+    njs_str_t error;
+    njs_value_to_string(vm, &error, value);
+    fprintf(stderr, "Exception: %.*s\n", (int)error.length, error.start);
 }
 

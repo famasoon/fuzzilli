@@ -112,6 +112,24 @@ njs_fuzzilli_func(njs_vm_t *vm, njs_value_t *args, njs_uint_t nargs,
             fprintf(fzliout, "%s\n", print_str);
         }
         fflush(fzliout);
+    } else if (!strcmp(str, "FUZZILLI_TEST_OBJECT")) {
+        // オブジェクト操作のテスト
+        njs_value_t obj;
+        njs_object_value_init(&obj);
+        
+        // プロパティの設定
+        njs_value_t prop;
+        njs_string_value_init(&prop, (u_char*)"test", 4);
+        njs_object_prop_set(vm, &obj, "prop", &prop);
+        
+        // メソッドの呼び出し
+        njs_function_call(vm, njs_function(&obj), &obj, NULL, 0);
+    } else if (!strcmp(str, "FUZZILLI_TEST_PROTOTYPE")) {
+        njs_value_t proto, obj;
+        njs_object_value_init(&proto);
+        njs_object_value_init(&obj);
+        
+        njs_object_prototype_set(vm, &obj, &proto);
     }
 
     return NJS_OK;
@@ -207,13 +225,15 @@ void __sanitizer_cov_trace_pc_guard_init(uint32_t *start, uint32_t *stop) {
 }
 
 void __sanitizer_cov_trace_pc_guard(uint32_t *guard) {
-    // There's a small race condition here: if this function executes in two threads for the same
-    // edge at the same time, the first thread might disable the edge (by setting the guard to zero)
-    // before the second thread fetches the guard value (and thus the index). However, our
-    // instrumentation ignores the first edge (see libcoverage.c) and so the race is unproblematic.
     uint32_t index = *guard;
-    // If this function is called before coverage instrumentation is properly initialized we want to return early.
     if (!index) return;
+    
+    // エッジカウンターの記録
+    index = (index & EDGE_COUNTER_MASK);
     __shmem->edges[index / 8] |= 1 << (index % 8);
+    
+    // ヒットカウントの記録
+    ((struct coverage_data*)__shmem)->hit_count[index]++;
+    
     *guard = 0;
 }
