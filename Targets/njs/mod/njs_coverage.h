@@ -89,6 +89,120 @@ function generateMemoryFuzzingTestCases() {
     );
 }
 
+// カり高度なメモリファジングテストケース
+function generateAdvancedMemoryFuzzingTestCases() {
+    // UAF (Use After Free) の検出
+    fuzzilli.testing(`
+        let obj = { x: 1 };
+        let ref = obj;
+        obj = null;
+        gc();
+        try { ref.x = 2; } catch(e) {}`
+    );
+
+    // ダブルフリーの検出
+    fuzzilli.testing(`
+        let arr = new Array(1000);
+        delete arr;
+        try { delete arr; } catch(e) {}`
+    );
+
+    // バッファオーバーフロー
+    fuzzilli.testing(`
+        let buf = new ArrayBuffer(16);
+        let view = new Uint32Array(buf);
+        for(let i = 0; i < 100; i++) {
+            try { view[i] = 0xFFFFFFFF; } catch(e) {}
+        }`
+    );
+
+    // メモリ枯渇攻撃
+    fuzzilli.testing(`
+        let arrays = [];
+        try {
+            while(true) {
+                arrays.push(new Uint8Array(1024 * 1024));
+            }
+        } catch(e) {}`
+    );
+
+    // 型混乱によるメモリ破壊
+    fuzzilli.testing(`
+        let obj = { x: 1.1 };
+        Object.defineProperty(obj, 'x', {
+            get: function() { gc(); return 1; },
+            set: function(v) { gc(); this.y = v; }
+        });
+        for(let i = 0; i < 1000; i++) {
+            obj.x = {};
+        }`
+    );
+
+    // 並行アクセスによるメモリ破壊
+    fuzzilli.testing(`
+        let sharedBuf = new SharedArrayBuffer(1024);
+        let view1 = new Int32Array(sharedBuf);
+        let view2 = new Int8Array(sharedBuf);
+        
+        Promise.all([
+            new Promise(r => {
+                for(let i = 0; i < 1000; i++) view1[i] = 0xFFFFFFFF;
+            }),
+            new Promise(r => {
+                for(let i = 0; i < 1000; i++) view2[i] = 0xFF;
+            })
+        ]);`
+    );
+
+    // スタック破壊
+    fuzzilli.testing(`
+        function stackSmash(depth) {
+            let arr = new Array(1000000).fill(0);
+            if(depth > 0) stackSmash(depth + 1);
+        }
+        try { stackSmash(1); } catch(e) {}`
+    );
+
+    // JITコンパイラの最適化を狙った攻撃
+    fuzzilli.testing(`
+        function jitTarget(x) {
+            // JIT最適化を誘発
+            for(let i = 0; i < 10000; i++) {
+                if(x === 0x1337) {
+                    return Array(0xFFFF).fill(0);
+                }
+            }
+        }
+        for(let i = 0; i < 10000; i++) jitTarget(i);
+        jitTarget(0x1337);`
+    );
+}
+
+// メモリアクセスパターンの生成
+function generateMemoryAccessPatterns() {
+    const patterns = [
+        // ヒープスプレー
+        Array(1000).fill(0).map(() => new ArrayBuffer(1024)),
+        
+        // フラグメンテーション
+        Array(1000).fill(0).map((_, i) => new ArrayBuffer(i % 2 ? 16 : 1024)),
+        
+        // アライメント違反
+        new Uint8Array(new ArrayBuffer(1023)),
+        
+        // 境界値
+        new ArrayBuffer(0xFFFFFFFF),
+        new ArrayBuffer(0),
+        
+        // 型変換
+        Object.assign(new Number(1), { x: new ArrayBuffer(1024) })
+    ];
+
+    patterns.forEach(pattern => {
+        fuzzilli.testing(`try { ${pattern.toString()} } catch(e) {}`);
+    });
+}
+
 // カバレッジ計測を強化
 struct coverage_stats getCoverageStats() {
     struct coverage_stats stats;

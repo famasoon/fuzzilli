@@ -254,3 +254,51 @@ void print_coverage_stats() {
     printf("Coverage: %.2f%% (%u/%u edges)\n", 
            percentage, covered, __shmem->num_edges);
 }
+
+// メモリアクセス監視の強化
+#define MEMORY_WATCH_SIZE 1024
+static struct {
+    void* addresses[MEMORY_WATCH_SIZE];
+    size_t sizes[MEMORY_WATCH_SIZE];
+    int count;
+} memory_watch;
+
+static void watch_memory_access(void* ptr, size_t size) {
+    if (memory_watch.count < MEMORY_WATCH_SIZE) {
+        memory_watch.addresses[memory_watch.count] = ptr;
+        memory_watch.sizes[memory_watch.count] = size;
+        memory_watch.count++;
+    }
+}
+
+static void check_memory_access(void* ptr) {
+    for (int i = 0; i < memory_watch.count; i++) {
+        if (ptr >= memory_watch.addresses[i] && 
+            ptr < (void*)((char*)memory_watch.addresses[i] + memory_watch.sizes[i])) {
+            fprintf(stderr, "Suspicious memory access detected at %p\n", ptr);
+            break;
+        }
+    }
+}
+
+// メモリ破壊検出の強化
+static void enhanced_memory_check(const void* ptr, size_t size) {
+    // 既存のチェックを実行
+    check_memory_corruption(ptr, size);
+    
+    // アライメントチェック
+    if ((uintptr_t)ptr % sizeof(void*) != 0) {
+        fprintf(stderr, "Unaligned memory access detected\n");
+    }
+    
+    // サイズの妥当性チェック
+    if (size > 0x1000000) { // 16MB
+        fprintf(stderr, "Suspiciously large memory allocation\n");
+    }
+    
+    // メモリアクセスパターンの監視
+    watch_memory_access((void*)ptr, size);
+    
+    // ダブルフリー検出
+    check_memory_access((void*)ptr);
+}
