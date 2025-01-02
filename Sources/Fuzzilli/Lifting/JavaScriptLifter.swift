@@ -1288,32 +1288,26 @@ public class JavaScriptLifter: Lifter {
             case .print:
                 let VALUE = input(0)
                 w.emit("fuzzilli('FUZZILLI_PRINT', \(VALUE));")
-            case .instantiateWasm(_):  // opを_に変更
-                let moduleExpr = inputAsIdentifier(0)
-                let importExprs = instr.inputs.dropFirst().map { inputAsIdentifier($0.number) }
-                let importArgs = importExprs.isEmpty ? "" : ", " + importExprs.map { $0.text }.joined(separator: ", ")
-                let expr = CallExpression.new() + moduleExpr + ".instantiate(" + importArgs + ")"
+            case .instantiateWasm:
+                let wasmBinary = input(0)
+                let imports = Array(1..<inputs.count).map { input($0) }
+                let expr = WasmLifter.liftInstantiateWasm(wasmBinary: wasmBinary, imports: imports)
                 w.assign(expr, to: instr.output)
-            case .getWasmExport(let p):
-                let instance = inputAsIdentifier(0)
-                let expr = MemberExpression.new() + instance + ".exports['" + p.exportName + "']"
+            case .getWasmExport(let op):
+                let instance = input(0)
+                let expr = WasmLifter.liftGetWasmExport(instance: instance, exportName: op.exportName)
                 w.assign(expr, to: instr.output)
-            case .getWasmMemory(let p):
-                let instance = inputAsIdentifier(0)
-                let expr = MemberExpression.new() + instance + ".memory[" + String(p.memoryIndex) + "]"
+            case .getWasmMemory(let op):
+                let instance = input(0)
+                let expr = WasmLifter.liftGetWasmMemory(instance: instance, memoryIndex: Int64(op.memoryIndex))
                 w.assign(expr, to: instr.output)
-            case .writeWasmMemory(let p):
-                let memory = inputAsIdentifier(0)
-                let bytes = p.bytes.map { String($0) }.joined(separator: ",")
-                let offset = String(p.offset)
-                
-                // 式を正しい形式で構築
-                let arrayExpr = "new Uint8Array(" + memory.text + ".buffer)"
-                let setCallExpr = arrayExpr + ".set([" + bytes + "], " + offset + ")"
-                w.emit(setCallExpr)
-            case .getWasmGlobal(let p):
-                let instance = inputAsIdentifier(0)
-                let expr = MemberExpression.new() + instance + ".globals['" + p.globalName + "']"
+            case .writeWasmMemory(let op):
+                let memory = input(0)
+                let expr = WasmLifter.liftWriteWasmMemory(memory: memory, offset: op.offset, bytes: op.bytes)
+                w.emit("\(expr);")
+            case .getWasmGlobal(let op):
+                let instance = input(0)
+                let expr = WasmLifter.liftGetWasmGlobal(instance: instance, globalName: op.globalName)
                 w.assign(expr, to: instr.output)
             }
 
