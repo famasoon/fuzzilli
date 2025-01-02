@@ -1464,8 +1464,8 @@ public class ProgramBuilder {
     private func buildInternal(initialBuildingBudget: Int, mode: BuildingMode) {
         assert(initialBuildingBudget > 0)
 
-        // Both splicing and code generation can sometimes fail, for example if no other program with the necessary features exists.
-        // To avoid infinite loops, we bail out after a certain number of consecutive failures.
+        // 連続失敗の最大回数を増やす
+        let maxConsecutiveFailures = 20 // 元の値は10
         var consecutiveFailures = 0
 
         let state = BuildingState(initialBudget: initialBuildingBudget, mode: mode)
@@ -1516,14 +1516,20 @@ public class ProgramBuilder {
                 context == origContext,
                 "Code generation or splicing must not change the current context")
 
-            if state.recursiveBuildingAllowed
-                && remainingBudget < ProgramBuilder.minBudgetForRecursiveCodeGeneration
-                && availableGenerators.contains(where: { !$0.isRecursive })
-            {
-                // No more recursion at this point since the remaining budget is too small.
-                state.recursiveBuildingAllowed = false
-                availableGenerators = availableGenerators.filter({ !$0.isRecursive })
-                assert(state.mode == .splicing || !availableGenerators.isEmpty)
+            // 失敗時のリカバリーロジックを追加
+            if consecutiveFailures >= maxConsecutiveFailures / 2 {
+                // 失敗が一定回数に達したら、より単純なジェネレーターを試す
+                availableGenerators = availableGenerators.filter { !$0.isRecursive }
+                
+                if availableGenerators.isEmpty {
+                    logger.warning("No suitable generators available after filtering. Attempting fallback...")
+                    // フォールバック: 最も基本的な値の生成を試みる
+                    if let result = buildValues(1) {
+                        consecutiveFailures = 0
+                        remainingBudget -= result.generatedInstructions
+                        continue
+                    }
+                }
             }
 
             var mode = state.mode
@@ -1577,14 +1583,16 @@ public class ProgramBuilder {
             } else {
                 buildLog?.endAction(withOutcome: .failed)
                 consecutiveFailures += 1
-                guard consecutiveFailures < 10 else {
-                    // When splicing, this is somewhat expected as we may not find code to splice if we're in a restricted
-                    // context (e.g. we're inside a switch, but can't find another program with switch-cases).
-                    // However, when generating code this should happen very rarely since we should always be able to
-                    // generate code, not matter what context we are currently in.
+                if consecutiveFailures >= maxConsecutiveFailures {
                     if state.mode != .splicing {
                         logger.warning(
-                            "Too many consecutive failures during code building with mode .\(state.mode). Bailing out."
+                            """
+                            Too many consecutive failures during code building with mode .\(state.mode). 
+                            Attempted \(maxConsecutiveFailures) times. 
+                            Current context: \(context)
+                            Available generators: \(availableGenerators.count)
+                            Bailing out.
+                            """
                         )
                         if let actions = buildLog?.actions {
                             logger.verbose("Build log:")
