@@ -112,5 +112,8 @@ public let codeGeneratorWeights: [String: Int] = [
     "ApiConstructorCallGenerator": 15,
     "ApiMethodCallGenerator": 15,
     "ApiFunctionCallGenerator": 15,
-    "VoidGenerator": 1
+    "VoidGenerator": 1,
+
+    // 基本的なコードジェネレータの重みを追加
+    "BasicCodeGenerator": 50,
 ]

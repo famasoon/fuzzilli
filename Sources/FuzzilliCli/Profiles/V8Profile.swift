@@ -807,6 +807,29 @@ fileprivate let WasmGenerator = CodeGenerator("WasmGenerator") { b in
     })
 }
 
+// 基本的なコードジェネレータを修正
+fileprivate let BasicCodeGenerator = CodeGenerator("BasicCodeGenerator") { b in
+    withEqualProbability({
+        // 数値演算
+        let x = b.loadInt(Int64.random(in: -100...100))
+        let y = b.loadInt(Int64.random(in: -100...100))
+        b.binary(x, y, with: chooseUniform(from: [.Add, .Sub, .Mul, .Div]))
+    }, {
+        // 関数呼び出し
+        let f = b.buildPlainFunction(with: .parameters(n: Int.random(in: 0...3))) { args in
+            if !args.isEmpty {
+                b.doReturn(args[0])
+            }
+        }
+        b.callFunction(f, withArgs: b.randomArguments(forCalling: f))
+    }, {
+        // オブジェクト操作
+        let obj = b.createObject(with: ["x": b.loadInt(42)])
+        b.setProperty("y", of: obj, to: b.loadString("test"))
+        b.getProperty("x", of: obj)
+    })
+}
+
 let v8Profile: Profile = Profile(
     processArgs: { randomize in
         var args = [
@@ -900,6 +923,9 @@ let v8Profile: Profile = Profile(
         (WorkerGenerator,                         10),
         (GcGenerator,                             10),
         
+        // 基本的なコードジェネレータを追加
+        (BasicCodeGenerator,                      50),
+        
         // WebAssembly関連のジェネレータ
         (WasmGenerator,                           50),
         (WasmMemoryOperationsGenerator,           40),
@@ -931,15 +957,58 @@ let v8Profile: Profile = Profile(
         "d8"            : .object(),
         "Worker"        : .constructor([.anything, .object()] => .object(withMethods: ["postMessage","getMessage"])),
         
+        // WebAssembly関連のビルトイン
         "WebAssembly"   : .object(withMethods: ["compile", "validate", "instantiate"]),
         "WebAssembly.Module"    : .constructor([.object(ofGroup: "TypedArray")] => .object()),
         "WebAssembly.Instance"  : .constructor([.object()] => .object()),
         "WebAssembly.Memory"    : .constructor([.object()] => .object()),
         "WebAssembly.Table"     : .constructor([.object()] => .object()),
-        "Uint8Array"    : .constructor([.object()] => .object(ofGroup: "TypedArray")),
+        
+        // Atomicsの型定義
+        "Atomics"       : .object(withMethods: [
+            "add",
+            "and",
+            "compareExchange",
+            "exchange",
+            "load",
+            "or",
+            "store",
+            "sub",
+            "xor",
+            "wait",
+            "notify",
+            "isLockFree"
+        ]),
+        
+        // SharedArrayBuffer型の定義
+        "SharedArrayBuffer": .constructor([.integer] => .object()),
+
+        // TypedArray関連のビルトイン（重複を削除）
+        "Int8Array"     : .constructor([.integer] => .object(ofGroup: "TypedArray")),
+        "Uint8Array"    : .constructor([.integer] => .object(ofGroup: "TypedArray")),
+        "Int16Array"    : .constructor([.integer] => .object(ofGroup: "TypedArray")),
+        "Uint16Array"   : .constructor([.integer] => .object(ofGroup: "TypedArray")),
+        "Int32Array"    : .constructor([.integer] => .object(ofGroup: "TypedArray")),
+        "Uint32Array"   : .constructor([.integer] => .object(ofGroup: "TypedArray")),
+        "Float32Array"  : .constructor([.integer] => .object(ofGroup: "TypedArray")),
+        "Float64Array"  : .constructor([.integer] => .object(ofGroup: "TypedArray"))
     ],
 
-    additionalObjectGroups: [],
+    // TypedArrayグループを修正
+    additionalObjectGroups: [
+        ObjectGroup(
+            name: "TypedArray",
+            instanceType: .object(),
+            properties: [:],
+            methods: [
+                "set": [.object(), .integer] => .undefined,
+                "subarray": [.integer, .integer] => .object(),
+                "slice": [.integer, .integer] => .object(),
+                "fill": [.integer, .integer, .integer] => .object(),
+                "copyWithin": [.integer, .integer, .integer] => .object()
+            ]
+        )
+    ],
 
     optionalPostProcessor: nil
 )
