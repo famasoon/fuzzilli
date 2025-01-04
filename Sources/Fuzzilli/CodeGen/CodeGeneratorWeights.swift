@@ -14,7 +14,8 @@
 
 /// Default weights for the builtin code generators.
 public let codeGeneratorWeights: [String: Int] = [
-    // Value generators
+    // 基本的なコードジェネレータ
+    "ThisGenerator": 10,
     "IntegerGenerator": 20,
     "RegExpGenerator": 5,
     "BigIntGenerator": 10,
