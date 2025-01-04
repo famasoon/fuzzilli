@@ -35,7 +35,7 @@ public let codeGeneratorWeights: [String: Int] = [
     "TrivialFunctionGenerator": 10,
 
     // Regular code generators
-    "ThisGenerator": 3,
+    "RegularThisGenerator": 3,
     "ArgumentsAccessGenerator": 3,
     "FunctionWithArgumentsAccessGenerator": 2,
     "BuiltinGenerator": 10,
@@ -76,8 +76,8 @@ public let codeGeneratorWeights: [String: Int] = [
     "WasmMemoryBoundaryTest": 25,           // メモリ境界テストの頻度を下げる
     "WasmConcurrentAccessTest": 20,         // 並行アクセステストの頻度を下げる
     "WasmTypeConversionTest": 30,           // 型変換テストの重みを調整
-    "WasmMemoryFuzzer": 40,                // メモリファジングは重要なので維持
-    "WasmSIMDFuzzer": 35,                 // SIMDテストの重みを調整
+    "WasmMemoryFuzzer": 15,                // 問題が解決するまで重みを大幅に下げる
+    "WasmSIMDFuzzer": 15,                  // 問題が解決するまで重みを大幅に下げる
     "SimpleWasmPromiseGenerator": 30,      // Promise APIテストの頻度を調整
     "WasmJSPIExploitGenerator": 35,       // JSPIエクスプロイトの重みを調整
     "RandomWasmBytesGenerator": 35,       // ランダムバイト列生成の重みを調整
