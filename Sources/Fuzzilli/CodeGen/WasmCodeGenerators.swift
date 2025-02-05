@@ -249,11 +249,18 @@ public let WasmCodeGenerators: [CodeGenerator] = [
             let entryValue = b.randomVariable(ofType: entryType)
 
             if entryValue != nil {
-                // There is at least one function in scope. Add some initial entries to the table.
-                // TODO(manoskouk): Generalize this.
-                definedEntryIndices = [0, 1, 2, 3, 4]
-                for _ in definedEntryIndices {
-                    definedEntryValues.append(b.randomVariable(ofType: entryType)!)
+                // decide the number of entries based on the table size
+                let entryCount = min(5, minSize)  // limit to not exceed the minimum size
+                definedEntryIndices = Array(0..<entryCount)
+
+                // generate a value of the appropriate type for each index
+                for _ in 0..<entryCount {
+                    if let value = b.randomVariable(ofType: entryType) {
+                        definedEntryValues.append(value)
+                    } else {
+                        // if no appropriate value is found, use a null reference
+                        definedEntryValues.append(b.loadNull())
+                    }
                 }
             }
         }
