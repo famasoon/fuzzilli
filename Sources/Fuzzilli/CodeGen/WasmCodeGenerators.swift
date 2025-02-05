@@ -651,9 +651,10 @@ public let WasmCodeGenerators: [CodeGenerator] = [
 
     RecursiveCodeGenerator("WasmBlockWithSignatureGenerator", inContext: .wasmFunction) { b in
         let function = b.currentWasmModule.currentWasmFunction
-        // Choose a few random wasm values as arguments if available.
-        let args = (0..<5).map { _ in b.findVariable { b.type(of: $0).Is(.wasmPrimitive) } }.filter
-        { $0 != nil }.map { $0! }
+        // ランダムな引数の数を生成（0から5の間）
+        let argCount = Int.random(in: 0...5)
+        let args = (0..<argCount).map { _ in b.findVariable { b.type(of: $0).Is(.wasmPrimitive) } }
+            .filter { $0 != nil }.map { $0! }
         let parameters = args.map { arg in Parameter.plain(b.type(of: arg)) }
         let outputType = b.randomWasmBlockOutputType()
         if outputType != .nothing {
@@ -816,8 +817,9 @@ public let WasmCodeGenerators: [CodeGenerator] = [
     ) { b, conditionVar in
         let function = b.currentWasmModule.currentWasmFunction
         // Choose a few random wasm values as arguments if available.
-        let args = (0..<5).map { _ in b.findVariable { b.type(of: $0).Is(.wasmPrimitive) } }.filter
-        { $0 != nil }.map { $0! }
+        let argCount = Int.random(in: 0...5)
+        let args = (0..<argCount).map { _ in b.findVariable { b.type(of: $0).Is(.wasmPrimitive) } }
+            .filter { $0 != nil }.map { $0! }
         let parameters = args.map { arg in Parameter.plain(b.type(of: arg)) }
         let outputType = b.randomWasmBlockOutputType()
         if outputType != .nothing {
