@@ -1045,7 +1045,7 @@ public let WasmCodeGenerators: [CodeGenerator] = [
     // For all of this to work we need to add a WasmTypeExtension and ideally the dynamic object group inference.
 ]
 
-// WasmGlobal enumに静的メソッドを追加
+// Add static method to WasmGlobal enum
 extension WasmGlobal {
     static func generateRandomGlobal(using builder: ProgramBuilder) -> WasmGlobal {
         let choices: [(Int, () -> WasmGlobal)] = [
@@ -1067,6 +1067,6 @@ extension WasmGlobal {
             rand -= weight
         }
 
-        return .wasmi32(0)  // フォールバック
+        return .wasmi32(0)  // fallback
     }
 }
