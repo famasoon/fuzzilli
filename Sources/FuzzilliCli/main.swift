@@ -545,6 +545,11 @@ fuzzer.sync {
     // Always want some statistics.
     fuzzer.addModule(Statistics())
 
+    // Track WebAssembly-specific crashes when wasm support is enabled.
+    if enableWasm {
+        fuzzer.addModule(WasmVulnerabilityDetector(for: fuzzer))
+    }
+
     // Exit this process when the main fuzzer stops.
     fuzzer.registerEventListener(for: fuzzer.events.ShutdownComplete) { reason in
         if resume, let path = storagePath {
