@@ -65,6 +65,9 @@ let package = Package(
         .target(name: "FuzzILTool",
                 dependencies: ["Fuzzilli"]),
 
+        .target(name: "WasmFuzzTool",
+                dependencies: ["Fuzzilli"]),
+
         .testTarget(name: "FuzzilliTests",
                     dependencies: ["Fuzzilli"],
                     resources: [.copy("CompilerTests")]),
