@@ -14,6 +14,16 @@ The basic steps to use this fuzzer are:
 
 Building and running Fuzzilli and the supported JavaScript engines inside Docker and on Google Compute Engine is [also supported](./Cloud).
 
+### Wasm fuzzing utility
+
+For quick experiments with WebAssembly fuzzing there is also a lightweight command line helper:
+
+```
+swift run WasmFuzzTool --engine=/path/to/node --iterations=200 --timeout=2000 --output=artifacts
+```
+
+`WasmFuzzTool` generates Wasm-heavy FuzzIL programs, lifts them to JavaScript harnesses, executes them with the selected engine, and stores interesting (crashing or timing out) inputs together with their serialized FuzzIL form when an output directory is provided. This tool is intended for standalone fuzzing sessions without the full REPRL setup.
+
 ### Hacking
 
 Check out [main.swift](Sources/FuzzilliCli/main.swift) to see a usage example of the Fuzzilli library and play with the various configuration options. Next, take a look at [Fuzzer.swift](Sources/Fuzzilli/Fuzzer.swift) for the highlevel fuzzing logic. From there dive into any part that seems interesting.
