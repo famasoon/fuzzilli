@@ -110,6 +110,7 @@ if args["-h"] != nil || args["--help"] != nil || args.numPositionalArguments != 
               --compile                : Compile the given JavaScript program to a FuzzIL program. Requires node.js
               --outputPathJS           : If given, --compile will write the lifted JS file to the given path after compilation.
               --generate               : Generate a random program using Fuzzilli's code generators and save it to the specified path.
+              --generateWasm           : Generate a random Wasm-enabled program and emit lifted JS, FuzzIL, and the raw Wasm module(s).
               --forDifferentialFuzzing : Enable additional features for better support of external differential fuzzing.
           """)
     exit(0)
@@ -118,7 +119,8 @@ if args["-h"] != nil || args["--help"] != nil || args.numPositionalArguments != 
 let path = args[0]
 
 let forDifferentialFuzzing = args.has("--forDifferentialFuzzing")
-let jsLifter = JavaScriptLifter(prefix: jsPrefix, suffix: jsSuffix, ecmaVersion: ECMAScriptVersion.es6, environment: JavaScriptEnvironment(), alwaysEmitVariables: forDifferentialFuzzing)
+let sharedEnvironment = JavaScriptEnvironment()
+let jsLifter = JavaScriptLifter(prefix: jsPrefix, suffix: jsSuffix, ecmaVersion: ECMAScriptVersion.es6, environment: sharedEnvironment, alwaysEmitVariables: forDifferentialFuzzing)
 
 // Covert a single IL protobuf file to FuzzIL's text format and print to stdout
 if args.has("--liftToFuzzIL") {
@@ -211,8 +213,73 @@ else if args.has("--compile") {
     }
 }
 
+else if args.has("--generateWasm") {
+    let fuzzer = makeMockFuzzer(config: Configuration(logLevel: .warning, enableInspection: true), environment: sharedEnvironment)
+    let generator = fuzzer.makeBuilder()
+    generator.buildPrefix()
+    generator.build(n: 100, by: .generating)
+    var program = generator.finalize()
+
+    let maxAttempts = 10
+    var artifacts: [WasmModuleArtifact] = []
+    var attempt = 1
+    while attempt <= maxAttempts {
+        artifacts = try extractWasmModules(from: program, using: sharedEnvironment)
+        if !artifacts.isEmpty {
+            break
+        }
+        attempt += 1
+        let retryBuilder = fuzzer.makeBuilder()
+        retryBuilder.buildPrefix()
+        retryBuilder.build(n: 100, by: .generating)
+        program = retryBuilder.finalize()
+    }
+
+    guard !artifacts.isEmpty else {
+        print("Failed to generate a program containing a Wasm module after \(maxAttempts) attempts.")
+        exit(-1)
+    }
+
+    let baseURL = URL(fileURLWithPath: path)
+    let baseWithoutExtension = baseURL.deletingPathExtension()
+    let moduleBaseName = baseWithoutExtension.lastPathComponent
+    let moduleDirectory = baseWithoutExtension.deletingLastPathComponent()
+
+    let jsOutput = jsLifter.lift(program, withOptions: .includeComments)
+    print(jsOutput)
+
+    do {
+        let programURL = baseWithoutExtension.appendingPathExtension("fzil")
+        try program.asProtobuf().serializedData().write(to: programURL)
+        print("Stored FuzzIL program at \(programURL.path)")
+
+        let jsURL = baseWithoutExtension.appendingPathExtension("js")
+        try jsOutput.write(to: jsURL, atomically: false, encoding: .utf8)
+        print("Stored lifted JavaScript harness at \(jsURL.path)")
+
+        for (index, artifact) in artifacts.enumerated() {
+            let wasmURL: URL
+            if artifacts.count == 1 {
+                wasmURL = baseWithoutExtension.appendingPathExtension("wasm")
+            } else {
+                let candidateName = "\(moduleBaseName)_\(index)"
+                wasmURL = moduleDirectory.appendingPathComponent(candidateName).appendingPathExtension("wasm")
+            }
+            try artifact.bytecode.write(to: wasmURL)
+            if artifact.importReferences.isEmpty {
+                print("Wrote Wasm module to \(wasmURL.path) (no imports required).")
+            } else {
+                print("Wrote Wasm module to \(wasmURL.path) (requires \(artifact.importReferences.count) import(s); use the lifted JS harness).")
+            }
+        }
+    } catch {
+        print("Failed to store generated artifacts: \(error)")
+        exit(-1)
+    }
+}
+
 else if args.has("--generate") {
-    let fuzzer = makeMockFuzzer(config: Configuration(logLevel: .warning, enableInspection: true), environment: JavaScriptEnvironment())
+    let fuzzer = makeMockFuzzer(config: Configuration(logLevel: .warning, enableInspection: true), environment: sharedEnvironment)
     let b = fuzzer.makeBuilder()
     b.buildPrefix()
     b.build(n: 50, by: .generating)

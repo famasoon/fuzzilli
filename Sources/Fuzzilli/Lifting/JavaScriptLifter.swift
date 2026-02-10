@@ -14,6 +14,53 @@
 
 import Foundation
 
+public struct WasmModuleArtifact {
+    public let bytecode: Data
+    public let importReferences: [Variable]
+
+    public init(bytecode: Data, importReferences: [Variable]) {
+        self.bytecode = bytecode
+        self.importReferences = importReferences
+    }
+}
+
+public func extractWasmModules(from program: Program, using environment: JavaScriptEnvironment) throws -> [WasmModuleArtifact] {
+    guard program.code.contains(where: { $0.op is BeginWasmModule }) else {
+        return []
+    }
+
+    var typer = JSTyper(for: environment)
+    var wasmInstructions = Code()
+    var modules: [WasmModuleArtifact] = []
+    var insideModule = false
+
+    for instr in program.code {
+        typer.analyze(instr)
+
+        if instr.op is BeginWasmModule {
+            insideModule = true
+            wasmInstructions = Code()
+            continue
+        }
+
+        if instr.op is EndWasmModule {
+            guard insideModule else { continue }
+            let lifter = WasmLifter(withTyper: typer, withWasmCode: wasmInstructions)
+            let (bytecode, importRefs) = try lifter.lift()
+            modules.append(WasmModuleArtifact(bytecode: bytecode, importReferences: importRefs))
+            wasmInstructions = Code()
+            insideModule = false
+            continue
+        }
+
+        if insideModule && (instr.op is WasmOperation || instr.op is WasmTypeOperation) {
+            wasmInstructions.append(instr)
+        }
+    }
+
+    return modules
+}
+
 /// Supported versions of the ECMA standard.
 public enum ECMAScriptVersion {
     case es5
